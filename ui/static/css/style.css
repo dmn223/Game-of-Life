@@ -1,0 +1,284 @@
+/* CelLab — Stiluri principale */
+
+/* ===== Reset & Base ===== */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg-primary: #0f0f1a;
+    --bg-secondary: #1a1a2e;
+    --bg-panel: #16213e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0b0;
+    --accent: #00ff88;
+    --accent-dim: #00cc6a;
+    --border: #2a2a4a;
+    --danger: #ff4444;
+    --warning: #ffaa00;
+    --radius: 8px;
+    --font-mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+/* ===== Header ===== */
+header {
+    text-align: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.title {
+    font-size: 1.8rem;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+/* ===== Layout Principal ===== */
+main {
+    display: flex;
+    height: calc(100vh - 80px);
+    gap: 0;
+}
+
+/* ===== Grid Canvas ===== */
+.grid-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background-color: var(--bg-secondary);
+}
+
+#grid-canvas {
+    border: 2px solid var(--border);
+    cursor: crosshair;
+    background-color: var(--bg-primary);
+}
+
+.grid-info {
+    display: flex;
+    gap: 2rem;
+    margin-top: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+    width: 340px;
+    min-width: 300px;
+    overflow-y: auto;
+    background-color: var(--bg-panel);
+    border-left: 1px solid var(--border);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.sidebar h3 {
+    color: var(--accent);
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ===== Butoane ===== */
+button {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    background-color: var(--accent-dim);
+    color: var(--bg-primary);
+    border-color: var(--accent);
+}
+
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+button:disabled:hover {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border);
+}
+
+.btn-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-group button {
+    flex: 1;
+    min-width: 60px;
+    font-size: 1.2rem;
+}
+
+.btn-example {
+    width: 100%;
+    font-size: 0.85rem;
+}
+
+/* ===== Speed Slider ===== */
+.speed-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+}
+
+.speed-control label {
+    color: var(--text-secondary);
+}
+
+#speed-slider {
+    flex: 1;
+    accent-color: var(--accent);
+}
+
+#speed-value {
+    font-family: var(--font-mono);
+    min-width: 65px;
+    text-align: right;
+    color: var(--accent);
+}
+
+/* ===== Textarea (NLP) ===== */
+textarea {
+    width: 100%;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* ===== Select & Input ===== */
+select, input[type="number"] {
+    width: 100%;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+}
+
+select:focus, input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* ===== Feedback ===== */
+.feedback {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    font-family: var(--font-mono);
+    line-height: 1.4;
+}
+
+.feedback.success {
+    background-color: rgba(0, 255, 136, 0.1);
+    border: 1px solid var(--accent-dim);
+    color: var(--accent);
+}
+
+.feedback.error {
+    background-color: rgba(255, 68, 68, 0.1);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+}
+
+.hidden {
+    display: none;
+}
+
+/* ===== Spec Display ===== */
+.spec-display {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.spec-display .placeholder {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* ===== Panels ===== */
+.controls-panel,
+.nlp-panel,
+.spec-panel,
+.analysis-panel {
+    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+    main {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .sidebar {
+        width: 100%;
+        min-width: auto;
+        border-left: none;
+        border-top: 1px solid var(--border);
+    }
+
+    .grid-section {
+        min-height: 50vh;
+    }
+}
