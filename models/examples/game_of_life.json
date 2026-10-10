@@ -1,0 +1,49 @@
+{
+  "name": "Conway's Game of Life",
+  "description": "Regulile clasice ale Jocului Vieții inventat de John Conway",
+  "states": [
+    {"name": "dead", "color": "#1a1a2e", "symbol": "."},
+    {"name": "alive", "color": "#00ff88", "symbol": "O"}
+  ],
+  "default_state": "dead",
+  "neighborhood": "moore",
+  "transitions": [
+    {
+      "from_state": "alive",
+      "to_state": "dead",
+      "neighbor_state": "alive",
+      "min_count": 0,
+      "max_count": 1,
+      "priority": 0
+    },
+    {
+      "from_state": "alive",
+      "to_state": "alive",
+      "neighbor_state": "alive",
+      "min_count": 2,
+      "max_count": 3,
+      "priority": 0
+    },
+    {
+      "from_state": "alive",
+      "to_state": "dead",
+      "neighbor_state": "alive",
+      "min_count": 4,
+      "max_count": 8,
+      "priority": 0
+    },
+    {
+      "from_state": "dead",
+      "to_state": "alive",
+      "neighbor_state": "alive",
+      "min_count": 3,
+      "max_count": 3,
+      "priority": 0
+    }
+  ],
+  "grid": {
+    "width": 50,
+    "height": 50,
+    "boundary": "wrap"
+  }
+}

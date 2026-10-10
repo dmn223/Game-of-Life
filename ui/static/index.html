@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CelLab — Simulator Automate Celulare</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <h1 class="title">CelLab</h1>
+        <p class="subtitle">Simulator de Automate Celulare 2D</p>
+    </header>
+
+    <main>
+        <!-- Grid Canvas -->
+        <section class="grid-section">
+            <canvas id="grid-canvas"></canvas>
+            <div class="grid-info">
+                <span id="generation-counter">Generația: 0</span>
+                <span id="cell-count">Celule active: 0</span>
+                <span id="grid-size">Grid: 50×50</span>
+            </div>
+        </section>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Controale simulare -->
+            <div class="controls-panel">
+                <h3>Controale</h3>
+                <div class="btn-group">
+                    <button id="btn-play" title="Play">▶</button>
+                    <button id="btn-pause" title="Pause" disabled>⏸</button>
+                    <button id="btn-step" title="Un pas">⏭</button>
+                    <button id="btn-reset" title="Reset">⏹</button>
+                </div>
+                <div class="speed-control">
+                    <label for="speed-slider">Viteză:</label>
+                    <input type="range" id="speed-slider" min="1" max="60" value="10">
+                    <span id="speed-value">10 gen/s</span>
+                </div>
+                <div class="btn-group">
+                    <button id="btn-random" title="Populare aleatorie">🎲 Random</button>
+                    <button id="btn-clear" title="Șterge tot">🗑️ Clear</button>
+                </div>
+            </div>
+
+            <!-- Panou NLP -->
+            <div class="nlp-panel">
+                <h3>Reguli (Limbaj Natural)</h3>
+                <textarea
+                    id="nlp-input"
+                    placeholder="Descrieți regulile automatului celular...&#10;&#10;Exemplu: A cell survives if it has 2 or 3 alive neighbors. A dead cell becomes alive if it has exactly 3 alive neighbors."
+                    rows="6"
+                ></textarea>
+                <button id="btn-parse">🔍 Parsează Reguli</button>
+                <div id="parse-feedback" class="feedback hidden"></div>
+            </div>
+
+            <!-- Specificație curentă -->
+            <div class="spec-panel">
+                <h3>Specificație Activă</h3>
+                <div id="spec-display" class="spec-display">
+                    <p class="placeholder">Nicio specificație încărcată.</p>
+                </div>
+                <div class="example-buttons">
+                    <button id="btn-load-gol" class="btn-example">📋 Game of Life</button>
+                </div>
+            </div>
+
+            <!-- Panou Analiză -->
+            <div class="analysis-panel">
+                <h3>Analiză</h3>
+                <select id="analysis-type">
+                    <option value="state_after_n">Stare după N iterații</option>
+                    <option value="steady_state">Stare stabilă</option>
+                    <option value="pattern_search">Căutare configurație</option>
+                    <option value="cell_count">Contorizare celule</option>
+                    <option value="cycle_detection">Detectare ciclu</option>
+                </select>
+                <input type="number" id="analysis-param-n" placeholder="N (iterații)" min="1" value="100">
+                <button id="btn-analyze">📊 Analizează</button>
+                <div id="analysis-result" class="feedback hidden"></div>
+            </div>
+        </aside>
+    </main>
+
+    <script src="/static/js/api_client.js"></script>
+    <script src="/static/js/grid.js"></script>
+    <script src="/static/js/controls.js"></script>
+    <script src="/static/js/rules_panel.js"></script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
