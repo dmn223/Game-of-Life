@@ -105,3 +105,23 @@ Cerere de efectuare commit pentru toate fișierele create și push pe GitHub pe 
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 4)
 
 ---
+
+### [2026-10-13 / Pasul 5] - Autor: Membru 1 / Echipa CelLab
+
+**Prompt Utilizator:**
+
+Întrebare privind modul de lucru Git pe un al doilea dispozitiv (dacă modificările se fac local pe dispozitiv sau în cloud/Codex).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Clarificare arhitectură Git distribuită:**
+   - Explicat că lucrul se desfășoară **100% local pe acel dispozitiv** (pe disk-ul fizic).
+   - Detaliat fluxul de sincronizare: Local (`edit`) → Istoric local (`git commit`) → Cloud GitHub (`git push`) → Sincronizare pe celălalt dispozitiv (`git pull`).
+   - Recomandări pentru colaborare în echipă (creare branch-uri separate pentru a evita conflictele).
+2. **Actualizare Audit Log:**
+   - Înregistrat Pasul 5 în `AI_INTERACTIONS.md` și sincronizat pe GitHub.
+
+**Fișiere create/modificate:**
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 5)
+
+---
