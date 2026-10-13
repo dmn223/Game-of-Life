@@ -125,3 +125,24 @@ Cerere de efectuare commit pentru toate fișierele create și push pe GitHub pe 
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 5)
 
 ---
+
+### [2026-10-13 / Pasul 6] - Autor: Membru 1 / Echipa CelLab
+
+**Prompt Utilizator:**
+
+Întrebare privind pașii de rulare a aplicației (atât interfața web cât și componentele CLI).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Ghidare rulare aplicație:**
+   - Prezentat comanda de activare a mediului virtual (`venv`).
+   - Prezentat comanda de pornire a serverului web FastAPI/Uvicorn (`python scripts/run_dev.py`).
+   - Menționat adresa de acces în browser (`http://localhost:8000`) și modalitatea de oprire (`Ctrl + C`).
+   - Oferit detalii despre rularea demo-ului CLI (`python scripts/demo.py`) și testelor (`pytest`).
+2. **Actualizare Audit Log:**
+   - Înregistrat Pasul 6 în `AI_INTERACTIONS.md` și sincronizat pe GitHub.
+
+**Fișiere create/modificate:**
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 6)
+
+---
