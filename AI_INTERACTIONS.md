@@ -85,3 +85,23 @@ Cerere de efectuare commit pentru toate fișierele create și push pe GitHub pe 
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 3)
 
 ---
+
+### [2026-10-13 / Pasul 4] - Autor: Membru 1 / Echipa CelLab
+
+**Prompt Utilizator:**
+
+Întrebare privind pașii de clonare și configurare a depozitului public pe un alt dispozitiv.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Ghidare clonare depozit:**
+   - Furnizat comenzi Git pentru clonarea branch-ului de lucru (`cellab_initial_project_setup`).
+   - Instrucțiuni de configurare a mediului virtual Python (`venv`) și instalare a dependențelor din `requirements.txt`.
+   - Instrucțiuni de validare locală prin rularea `scripts/demo.py` și `pytest`.
+2. **Actualizare Audit Log:**
+   - Actualizat `AI_INTERACTIONS.md` cu Pasul 4.
+
+**Fișiere create/modificate:**
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 4)
+
+---
