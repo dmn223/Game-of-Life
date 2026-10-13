@@ -213,3 +213,43 @@ Cerere de efectuare commit pentru toate fișierele create și push pe GitHub pe 
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 8)
 
 ---
+
+### [2026-10-13 / Pasul 9] - Autor: Echipa CelLab
+
+**Prompt Utilizator:**
+
+„Cum ai răspunde la aceste întrebări? Să dai o soluție cât mai eficientă, să răspunzi în limbaj natural, nu intra prea mult în detaliu.”
+
+- *What is the state after N iterations?*
+- *When does the system reach a stable state? (no changes will occur in future generations)*
+- *Does a particular configuration ever occur?*
+- *How many cells of type X exist after N iterations?*
+- *Does the simulation enter a cycle? (a repeating sequence of states)*
+
+Solicitare ulterioară: publicarea răspunsurilor pe GitHub în `AI_INTERACTIONS.md`.
+
+**Răspuns / Acțiuni AI:**
+
+Aș folosi o singură simulare, cu actualizarea simultană a celulelor la fiecare generație, și aș reutiliza rezultatele pentru toate întrebările:
+
+1. **Care este starea după N iterații?**
+   Simulez până la generația N. Dacă detectez un ciclu înainte, calculez direct ce stare din ciclu corespunde lui N, evitând iterațiile inutile.
+
+2. **Când ajunge sistemul într-o stare stabilă?**
+   Compar fiecare generație cu precedenta. Prima generație identică cu cea anterioară indică stabilizarea, presupunând reguli deterministe care nu se schimbă în timp.
+
+3. **Apare vreodată o anumită configurație?**
+   Verific configurația în starea inițială și după fiecare iterație. Dacă sistemul se stabilizează sau încheie un ciclu fără să o întâlnească, pot spune că nu va apărea. Dacă ating doar o limită de simulare, răspunsul este „nu a apărut în intervalul verificat”.
+
+4. **Câte celule de tip X există după N iterații?**
+   Obțin starea de la generația N și număr celulele de tip X printr-o operație NumPy asupra întregii grile.
+
+5. **Intră simularea într-un ciclu?**
+   Păstrez o amprentă (*hash*) pentru fiecare stare, împreună cu generația ei. Când o amprentă reapare, verific că stările sunt identice; diferența dintre generații este lungimea ciclului. O stare stabilă este un ciclu de lungime 1.
+
+Pentru eficiență, păstrez doar starea curentă și informațiile necesare întrebărilor cerute. Detectarea ciclurilor permite oprirea timpurie și calcularea rapidă a rezultatelor pentru valori mari ale lui N.
+
+**Fișiere create/modificate:**
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 9)
+
+---
