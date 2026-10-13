@@ -164,3 +164,52 @@ Cerere de efectuare commit pentru toate fișierele create și push pe GitHub pe 
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 7)
 
 ---
+
+### [2026-10-13 / Pasul 8] - Autor: Membru 1 / Echipa CelLab
+
+**Prompt Utilizator:**
+
+Întrebări tehnice multiple:
+1. De ce rulăm pe localhost (eficiență)?
+2. Idei de implementări tehnice potențiale
+3. Cum modelăm limbajul natural (RN + dataset) pentru cerință
+4. Cum facem un spațiu vizual foarte mare (aproape infinit)
+5. Cum implementăm Rule 30 (automate 1D elementare)
+6. Ce îmbunătățiri de eficiență putem propune
+
+**Răspuns / Acțiuni AI:**
+
+1. **Localhost vs Cloud:**
+   - Explicat avantajele rulării locale: latență ~0ms, acces complet la CPU/RAM, cost zero, debugging direct.
+   - CelLab este CPU-intensive (250K operații/generație la 500×500), rețeaua ar fi bottleneck.
+
+2. **Idei tehnice:**
+   - Propuse extensii: heatmap temporal, export GIF, grafice live, automate probabilistice, multi-layer, suport multilingv, catalog automate clasice, serializare stare.
+
+3. **NLP — 3 Strategii detaliate:**
+   - **Regex/Rule-Based** (recomandată ca bază): pattern matching pe expresii naturale, zero dependențe.
+   - **LLM API** (extensie): prompt engineering cu GPT/Gemini, output JSON validat Pydantic.
+   - **Rețea Neuronală Locală** (direcție viitoare): fine-tuning DistilBERT pe dataset custom de 500-2000 perechi text→JSON, cu augmentare prin parafrazare și generare sintetică.
+
+4. **Grid Infinit — Chunk-based Sparse:**
+   - Propusă arhitectură cu chunk-uri 64×64, stocate într-un dict sparse.
+   - Doar regiunile populate consumă memorie (un glider traversând 1M celule = ~240 KB RAM).
+   - Pan & Zoom în frontend cu conversie coordonate ecran → coordonate mondiale.
+
+5. **Rule 30 — Automate 1D Elementare:**
+   - Explicat conceptul (Wolfram): 8 biți → tabel lookup de tranziție.
+   - Propusă extinderea schemei Pydantic cu `dimensions: int` și `wolfram_rule: Optional[int]`.
+   - Vizualizare spațiu-timp (axa X = spațiu, axa Y = timp).
+
+6. **Eficiență — 5 niveluri de optimizare:**
+   - Nivel 1: NumPy vectorizat (convoluție) — ~10M celule/sec
+   - Nivel 2: Dirty Rectangles (skip regiuni stabile) — ~50M celule/sec
+   - Nivel 3: Bitwise packed (64 celule/uint64) — ~200M celule/sec
+   - Nivel 4: HashLife / Gosper's Algorithm (cache exponențial) — ~10^15 celule/sec
+   - Nivel 5: GPU Compute via WebGPU — ~1B celule/sec
+
+**Fișiere create/modificate:**
+- Artifact nou: `cellab_technical_discussion.md` (document detaliat cu diagrame, cod, tabele)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 8)
+
+---
