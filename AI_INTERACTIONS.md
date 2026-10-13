@@ -85,3 +85,131 @@ Cerere de efectuare commit pentru toate fișierele create și push pe GitHub pe 
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 3)
 
 ---
+
+### [2026-10-13 / Pasul 4] - Autor: Membru 1 / Echipa CelLab
+
+**Prompt Utilizator:**
+
+Întrebare privind pașii de clonare și configurare a depozitului public pe un alt dispozitiv.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Ghidare clonare depozit:**
+   - Furnizat comenzi Git pentru clonarea branch-ului de lucru (`cellab_initial_project_setup`).
+   - Instrucțiuni de configurare a mediului virtual Python (`venv`) și instalare a dependențelor din `requirements.txt`.
+   - Instrucțiuni de validare locală prin rularea `scripts/demo.py` și `pytest`.
+2. **Actualizare Audit Log:**
+   - Actualizat `AI_INTERACTIONS.md` cu Pasul 4.
+
+**Fișiere create/modificate:**
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 4)
+
+---
+
+### [2026-10-13 / Pasul 5] - Autor: Membru 1 / Echipa CelLab
+
+**Prompt Utilizator:**
+
+Întrebare privind modul de lucru Git pe un al doilea dispozitiv (dacă modificările se fac local pe dispozitiv sau în cloud/Codex).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Clarificare arhitectură Git distribuită:**
+   - Explicat că lucrul se desfășoară **100% local pe acel dispozitiv** (pe disk-ul fizic).
+   - Detaliat fluxul de sincronizare: Local (`edit`) → Istoric local (`git commit`) → Cloud GitHub (`git push`) → Sincronizare pe celălalt dispozitiv (`git pull`).
+   - Recomandări pentru colaborare în echipă (creare branch-uri separate pentru a evita conflictele).
+2. **Actualizare Audit Log:**
+   - Înregistrat Pasul 5 în `AI_INTERACTIONS.md` și sincronizat pe GitHub.
+
+**Fișiere create/modificate:**
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 5)
+
+---
+
+### [2026-10-13 / Pasul 6] - Autor: Membru 1 / Echipa CelLab
+
+**Prompt Utilizator:**
+
+Întrebare privind pașii de rulare a aplicației (atât interfața web cât și componentele CLI).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Ghidare rulare aplicație:**
+   - Prezentat comanda de activare a mediului virtual (`venv`).
+   - Prezentat comanda de pornire a serverului web FastAPI/Uvicorn (`python scripts/run_dev.py`).
+   - Menționat adresa de acces în browser (`http://localhost:8000`) și modalitatea de oprire (`Ctrl + C`).
+   - Oferit detalii despre rularea demo-ului CLI (`python scripts/demo.py`) și testelor (`pytest`).
+2. **Actualizare Audit Log:**
+   - Înregistrat Pasul 6 în `AI_INTERACTIONS.md` și sincronizat pe GitHub.
+
+**Fișiere create/modificate:**
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 6)
+
+---
+
+### [2026-10-13 / Pasul 7] - Autor: Membru 1 / Echipa CelLab
+
+**Prompt Utilizator:**
+
+Întrebare privind calea/locația pe disc a folderului proiectului.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Furnizare cale depozit:**
+   - Specificat calea absolută pe disc a directorului de lucru (`C:\Users\DAMIAN\.gemini\antigravity\worktrees\Game-of-Life\cellab_initial_project_setup`).
+2. **Actualizare Audit Log:**
+   - Înregistrat Pasul 7 în `AI_INTERACTIONS.md` și sincronizat pe GitHub.
+
+**Fișiere create/modificate:**
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 7)
+
+---
+
+### [2026-10-13 / Pasul 8] - Autor: Membru 1 / Echipa CelLab
+
+**Prompt Utilizator:**
+
+Întrebări tehnice multiple:
+1. De ce rulăm pe localhost (eficiență)?
+2. Idei de implementări tehnice potențiale
+3. Cum modelăm limbajul natural (RN + dataset) pentru cerință
+4. Cum facem un spațiu vizual foarte mare (aproape infinit)
+5. Cum implementăm Rule 30 (automate 1D elementare)
+6. Ce îmbunătățiri de eficiență putem propune
+
+**Răspuns / Acțiuni AI:**
+
+1. **Localhost vs Cloud:**
+   - Explicat avantajele rulării locale: latență ~0ms, acces complet la CPU/RAM, cost zero, debugging direct.
+   - CelLab este CPU-intensive (250K operații/generație la 500×500), rețeaua ar fi bottleneck.
+
+2. **Idei tehnice:**
+   - Propuse extensii: heatmap temporal, export GIF, grafice live, automate probabilistice, multi-layer, suport multilingv, catalog automate clasice, serializare stare.
+
+3. **NLP — 3 Strategii detaliate:**
+   - **Regex/Rule-Based** (recomandată ca bază): pattern matching pe expresii naturale, zero dependențe.
+   - **LLM API** (extensie): prompt engineering cu GPT/Gemini, output JSON validat Pydantic.
+   - **Rețea Neuronală Locală** (direcție viitoare): fine-tuning DistilBERT pe dataset custom de 500-2000 perechi text→JSON, cu augmentare prin parafrazare și generare sintetică.
+
+4. **Grid Infinit — Chunk-based Sparse:**
+   - Propusă arhitectură cu chunk-uri 64×64, stocate într-un dict sparse.
+   - Doar regiunile populate consumă memorie (un glider traversând 1M celule = ~240 KB RAM).
+   - Pan & Zoom în frontend cu conversie coordonate ecran → coordonate mondiale.
+
+5. **Rule 30 — Automate 1D Elementare:**
+   - Explicat conceptul (Wolfram): 8 biți → tabel lookup de tranziție.
+   - Propusă extinderea schemei Pydantic cu `dimensions: int` și `wolfram_rule: Optional[int]`.
+   - Vizualizare spațiu-timp (axa X = spațiu, axa Y = timp).
+
+6. **Eficiență — 5 niveluri de optimizare:**
+   - Nivel 1: NumPy vectorizat (convoluție) — ~10M celule/sec
+   - Nivel 2: Dirty Rectangles (skip regiuni stabile) — ~50M celule/sec
+   - Nivel 3: Bitwise packed (64 celule/uint64) — ~200M celule/sec
+   - Nivel 4: HashLife / Gosper's Algorithm (cache exponențial) — ~10^15 celule/sec
+   - Nivel 5: GPU Compute via WebGPU — ~1B celule/sec
+
+**Fișiere create/modificate:**
+- Artifact nou: `cellab_technical_discussion.md` (document detaliat cu diagrame, cod, tabele)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 8)
+
+---
