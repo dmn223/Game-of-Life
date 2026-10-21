@@ -192,9 +192,39 @@ button:disabled {
     box-shadow: 0 0 10px var(--accent-glow);
 }
 
-.btn-secondary {
+.btn-step {
     background-color: #2b3a67;
     border-color: #495d9e;
+    color: #fff;
+    font-weight: 700;
+}
+
+.btn-step:hover {
+    background-color: #3b508f;
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.btn-highlight {
+    background-color: rgba(255, 165, 2, 0.15) !important;
+    border-color: var(--warning) !important;
+    color: var(--warning) !important;
+    font-weight: 600;
+}
+
+.btn-highlight:hover {
+    background-color: var(--warning) !important;
+    color: #0b0c16 !important;
+}
+
+.btn-secondary {
+    background-color: #2a2a44;
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: var(--border-highlight);
     color: #fff;
 }
 
@@ -399,25 +429,77 @@ textarea:focus, select:focus, input:focus {
     margin-bottom: 0.4rem;
 }
 
-/* ===== Grila Vizuală 5x5 Pattern Relative ===== */
-.pattern-grid-container {
+/* ===== Selector Stare Celulă Curentă [x, y] ===== */
+.state-selector-row {
     display: flex;
-    justify-content: center;
-    margin: 0.5rem 0 0.75rem 0;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
 }
 
-.pattern-grid {
+.btn-state-pill {
+    flex: 1;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.4rem;
+    font-size: 0.78rem;
+    border-radius: var(--radius-sm);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-state-pill:hover {
+    border-color: var(--border-highlight);
+    color: var(--text-primary);
+}
+
+.btn-state-pill.active {
+    background-color: #2b1f4d;
+    border-color: #8b5cf6;
+    color: #c4b5fd;
+    font-weight: 700;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+}
+
+/* ===== Grila Vizuală 3x3 Intuitivă ===== */
+.quick-neighbor-bar {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.4rem;
+}
+
+.btn-chip {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background-color: rgba(0, 255, 136, 0.08);
+}
+
+.pattern-grid-3x3 {
     display: grid;
-    grid-template-columns: repeat(5, 52px);
-    grid-template-rows: repeat(5, 42px);
-    gap: 3px;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 56px);
+    gap: 5px;
     background-color: var(--bg-secondary);
-    padding: 6px;
+    padding: 8px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border);
+    margin-bottom: 0.6rem;
 }
 
-.pattern-cell {
+.nb-cell {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -425,52 +507,107 @@ textarea:focus, select:focus, input:focus {
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: 0.68rem;
     user-select: none;
     transition: all 0.15s ease;
     background-color: var(--bg-card);
+    padding: 0.2rem;
+    text-align: center;
 }
 
-.pattern-cell:hover {
+.nb-cell:hover {
     border-color: var(--accent);
-    transform: scale(1.05);
+    transform: translateY(-1px);
 }
 
-.pattern-center {
-    background-color: #2b1f4d !important;
-    border-color: #8b5cf6 !important;
-    color: #c4b5fd !important;
-    cursor: default !important;
+.nb-coord {
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
 }
 
-.pattern-center:hover {
-    transform: none !important;
-}
-
-.pattern-cell.state-any {
-    background-color: var(--bg-card);
+.nb-status {
+    font-size: 0.68rem;
+    margin-top: 2px;
     color: var(--text-secondary);
 }
 
-.pattern-cell.state-any small {
-    color: #555;
+.nb-cell.st-any {
+    background-color: var(--bg-card);
+    border-color: var(--border);
 }
 
-.pattern-cell.state-one {
-    background-color: rgba(0, 255, 136, 0.2);
+.nb-cell.st-one {
+    background-color: rgba(0, 255, 136, 0.22);
     border-color: var(--accent);
+}
+
+.nb-cell.st-one .nb-coord,
+.nb-cell.st-one .nb-status {
     color: var(--accent);
     font-weight: 700;
 }
 
-.pattern-cell.state-zero {
-    background-color: rgba(255, 71, 87, 0.2);
+.nb-cell.st-zero {
+    background-color: rgba(255, 71, 87, 0.22);
     border-color: var(--danger);
+}
+
+.nb-cell.st-zero .nb-coord,
+.nb-cell.st-zero .nb-status {
     color: var(--danger);
     font-weight: 700;
 }
 
-/* ===== Active Rules List ===== */
+.nb-center-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #2b1f4d;
+    border: 2px solid #8b5cf6;
+    border-radius: var(--radius-sm);
+    color: #c4b5fd;
+    cursor: default;
+    user-select: none;
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.25);
+}
+
+.nb-center-cell strong {
+    font-size: 0.85rem;
+    font-family: var(--font-mono);
+}
+
+.nb-center-cell small {
+    font-size: 0.68rem;
+    color: #a78bfa;
+}
+
+/* ===== Șabloane Rapide Text (1-Click) ===== */
+.template-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+}
+
+.btn-template {
+    text-align: left;
+    white-space: normal;
+    line-height: 1.3;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.74rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-color: var(--border);
+}
+
+.btn-template:hover {
+    border-color: #3b82f6;
+    color: #93c5fd;
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* ===== Active Rules List & Cards ===== */
 .active-rules-header {
     display: flex;
     justify-content: space-between;
@@ -490,7 +627,7 @@ textarea:focus, select:focus, input:focus {
 }
 
 .active-rules-list {
-    max-height: 220px;
+    max-height: 240px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -504,11 +641,22 @@ textarea:focus, select:focus, input:focus {
     border-radius: var(--radius-sm);
     padding: 0.5rem 0.6rem;
     font-size: 0.78rem;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
 }
 
 .rule-card:hover {
     border-color: var(--border-highlight);
+}
+
+.rule-card.rule-disabled {
+    opacity: 0.5;
+    background-color: rgba(20, 20, 30, 0.6);
+    border-color: #1e1e30;
+}
+
+.rule-card.rule-disabled .rule-title {
+    text-decoration: line-through;
+    color: var(--text-secondary);
 }
 
 .rule-card-header {
@@ -518,9 +666,31 @@ textarea:focus, select:focus, input:focus {
     margin-bottom: 0.25rem;
 }
 
-.rule-title {
+.rule-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
     font-weight: 600;
+}
+
+.rule-toggle-checkbox {
+    accent-color: var(--accent);
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+}
+
+.rule-title {
     color: var(--accent);
+    font-size: 0.8rem;
+}
+
+.rule-desc {
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
 }
 
 .rule-card.rule-card-default {
@@ -528,6 +698,15 @@ textarea:focus, select:focus, input:focus {
 }
 
 .badge-default-tag {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.35rem;
+    background-color: rgba(0, 255, 136, 0.15);
+    color: var(--accent);
+    border-radius: 4px;
+    font-weight: 700;
+    margin-left: 0.3rem;
+    vertical-align: middle;
+}
     font-size: 0.65rem;
     padding: 0.1rem 0.35rem;
     background-color: rgba(0, 255, 136, 0.15);
@@ -631,6 +810,12 @@ textarea:focus, select:focus, input:focus {
     background-color: rgba(255, 71, 87, 0.1);
     border: 1px solid var(--danger);
     color: var(--danger);
+}
+
+.feedback.warning {
+    background-color: rgba(255, 165, 2, 0.12);
+    border: 1px solid var(--warning);
+    color: var(--warning);
 }
 
 .hidden {

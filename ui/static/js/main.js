@@ -16,11 +16,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     gridRenderer.render();
 
-    // 2. Inițializare Controale Simulare (Play/Pause/Step/Reset + WebSocket)
+    // 2. Inițializare Controale Simulare (Play/Pause/Step/Reset + WebSocket + Motor Local)
     const controls = new SimulationControls(gridRenderer);
+    window.controls = controls;
 
-    // 3. Inițializare Editor de Reguli (Personalizate [x, y] & Presets)
+    // 3. Inițializare Editor de Reguli (Asistent Vizual 3x3, Text, Presets)
     const rulesPanel = new RulesPanel();
+    window.rulesPanel = rulesPanel;
 
     // 4. Inițializare Panou Analiză
     const btnAnalyze = document.getElementById('btn-analyze');

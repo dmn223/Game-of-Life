@@ -172,6 +172,10 @@ def _step_simulation():
             curr_val = _grid[r][c]
 
             for rule in effective_rules:
+                # Verificare dacă regula este activată
+                if rule.get("enabled", True) is False:
+                    continue
+
                 # 1. Verificare stare celulă curentă [x, y]
                 req_state = rule.get("current_state", -1)
                 if req_state != -1 and curr_val != req_state:

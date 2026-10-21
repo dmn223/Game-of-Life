@@ -23,19 +23,19 @@
                 <span id="status-indicator" class="status-badge connected">● Conectat</span>
             </div>
             <div class="canvas-hint">
-                💡 <em>Click sau drag pe grid pentru a desena/șterge celule (1 = verde, 0 = fundal închis).</em>
+                💡 <em>Click sau drag pe grid pentru a desena/șterge celule (1 = verde aprins, 0 = fundal închis). Apăsați <strong>🎲 Random</strong> apoi <strong>▶ Play</strong> pentru a vedea evoluția!</em>
             </div>
         </section>
 
         <!-- Sidebar Controale & Reguli -->
         <aside class="sidebar">
-            <!-- 1. Controale simulare -->
+            <!-- 1. Controale simulare principale -->
             <div class="panel controls-panel">
                 <h3>Controale Simulare</h3>
                 <div class="btn-group main-controls">
                     <button id="btn-play" class="btn-primary" title="Pornește simularea">▶ Play</button>
-                    <button id="btn-pause" title="Pune pauză" disabled>⏸ Pause</button>
-                    <button id="btn-step" class="btn-secondary" title="Avansează o generație">⏭ Step</button>
+                    <button id="btn-pause" class="btn-secondary" title="Pune pauză" disabled>⏸ Pause</button>
+                    <button id="btn-step" class="btn-step" title="Avansează o singură generație">⏭ Step</button>
                     <button id="btn-reset" title="Resetează generația la 0">⏹ Reset</button>
                 </div>
                 <div class="speed-control">
@@ -44,16 +44,16 @@
                     <span id="speed-value">10 gen/s</span>
                 </div>
                 <div class="btn-group">
-                    <button id="btn-random" title="Populare aleatorie">🎲 Random</button>
+                    <button id="btn-random" class="btn-highlight" title="Populare aleatorie a gridului">🎲 Random</button>
                     <button id="btn-clear" title="Șterge tot gridul">🗑️ Clear</button>
                 </div>
             </div>
 
-            <!-- 2. Reguli Limbaj Natural & Editor Personalizat -->
+            <!-- 2. Reguli Limbaj Natural & Editor Intuitiv -->
             <div class="panel rules-panel">
                 <h3>Reguli (Limbaj Natural)</h3>
 
-                <!-- Sub-label cerut explicit de utilizator -->
+                <!-- Sub-label explicativ cerut -->
                 <div class="sub-label-header">
                     <span class="badge-tag">Reguli Personalizate [x, y]</span>
                     <p class="section-desc">
@@ -62,65 +62,133 @@
                     </p>
                 </div>
 
-                <!-- Tabs: Mod Text vs Mod Vizual -->
+                <!-- Tabs: Asistent Vizual vs Mod Text -->
                 <div class="tabs-header">
-                    <button id="tab-btn-text" class="tab-btn active">✍️ Text / Sintaxă Naturală</button>
-                    <button id="tab-btn-visual" class="tab-btn">🎨 Constructor Vizual</button>
+                    <button id="tab-btn-visual" class="tab-btn active">🧩 Asistent Vizual 3×3</button>
+                    <button id="tab-btn-text" class="tab-btn">✍️ Mod Text / Șabloane</button>
                 </div>
 
-                <!-- Mod 1: Introducere directă text -->
-                <div id="tab-content-text" class="tab-content active">
-                    <label for="custom-rule-text" class="field-label">Introduceți regula în limbaj natural / semi-formal:</label>
+                <!-- Mod 1: Constructor Vizual Intuitiv 3x3 -->
+                <div id="tab-content-visual" class="tab-content active">
+                    <!-- Starea celulei curente [x, y] -->
+                    <div class="rule-field">
+                        <label class="field-label">1. Starea celulei curente <code>[x, y]</code>:</label>
+                        <div class="state-selector-row">
+                            <button type="button" class="btn-state-pill active" data-state="-1">⚪ Oricare (*)</button>
+                            <button type="button" class="btn-state-pill" data-state="1">🟢 Vie (1)</button>
+                            <button type="button" class="btn-state-pill" data-state="0">🔴 Moartă (0)</button>
+                        </div>
+                    </div>
+
+                    <!-- Vecini 3x3 în jurul lui [x, y] -->
+                    <div class="rule-field">
+                        <label class="field-label">2. Condiție vecini <code>[x+dx, y+dy]</code>:</label>
+                        <p class="mini-hint">Click pe căsuțe pentru a alege: ⬜ Oricare | 🟢 Trebuie 1 | 🔴 Trebuie 0</p>
+                        
+                        <!-- Butoane rapide vecini -->
+                        <div class="quick-neighbor-bar">
+                            <button type="button" id="btn-nb-any" class="btn-chip" title="Resetează toți vecinii pe 'oricare'">Resetează toți</button>
+                            <button type="button" id="btn-nb-horiz" class="btn-chip" title="Setează vecinii stânga și dreapta pe 1">Orizontal</button>
+                            <button type="button" id="btn-nb-vert" class="btn-chip" title="Setează vecinii sus și jos pe 1">Vertical</button>
+                            <button type="button" id="btn-nb-cross" class="btn-chip" title="Cruce (+)">Cruce (+)</button>
+                        </div>
+
+                        <!-- Grilă 3x3 curată și spațioasă -->
+                        <div class="pattern-grid-3x3">
+                            <!-- Rând 1: Sus -->
+                            <div class="nb-cell" data-dx="-1" data-dy="-1" title="Sus-Stânga [x-1, y-1]">
+                                <span class="nb-coord">[x-1, y-1]</span>
+                                <span class="nb-status">Oricare</span>
+                            </div>
+                            <div class="nb-cell" data-dx="0" data-dy="-1" title="Sus [x, y-1]">
+                                <span class="nb-coord">Sus [x, y-1]</span>
+                                <span class="nb-status">Oricare</span>
+                            </div>
+                            <div class="nb-cell" data-dx="1" data-dy="-1" title="Sus-Dreapta [x+1, y-1]">
+                                <span class="nb-coord">[x+1, y-1]</span>
+                                <span class="nb-status">Oricare</span>
+                            </div>
+
+                            <!-- Rând 2: Mijloc -->
+                            <div class="nb-cell" data-dx="-1" data-dy="0" title="Stânga [x-1, y]">
+                                <span class="nb-coord">Stânga [x-1, y]</span>
+                                <span class="nb-status">Oricare</span>
+                            </div>
+                            <div class="nb-center-cell" title="Celula curentă [x, y]">
+                                <strong>[x, y]</strong>
+                                <small id="center-cell-label">Oricare</small>
+                            </div>
+                            <div class="nb-cell" data-dx="1" data-dy="0" title="Dreapta [x+1, y]">
+                                <span class="nb-coord">Dreapta [x+1, y]</span>
+                                <span class="nb-status">Oricare</span>
+                            </div>
+
+                            <!-- Rând 3: Jos -->
+                            <div class="nb-cell" data-dx="-1" data-dy="1" title="Jos-Stânga [x-1, y+1]">
+                                <span class="nb-coord">[x-1, y+1]</span>
+                                <span class="nb-status">Oricare</span>
+                            </div>
+                            <div class="nb-cell" data-dx="0" data-dy="1" title="Jos [x, y+1]">
+                                <span class="nb-coord">Jos [x, y+1]</span>
+                                <span class="nb-status">Oricare</span>
+                            </div>
+                            <div class="nb-cell" data-dx="1" data-dy="1" title="Jos-Dreapta [x+1, y+1]">
+                                <span class="nb-coord">[x+1, y+1]</span>
+                                <span class="nb-status">Oricare</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acțiune & Câmpuri țintă -->
+                    <div class="rule-field">
+                        <label class="field-label">3. Ce se întâmplă când condiția este îndeplinită?</label>
+                        <div class="target-field-row">
+                            <select id="visual-target-field" title="Alegeți câmpul afectat">
+                                <option value="0,0" selected>🎯 Câmpul curent [x, y]</option>
+                                <option value="1,0">➡️ [x+1, y] (dreapta)</option>
+                                <option value="-1,0">⬅️ [x-1, y] (stânga)</option>
+                                <option value="0,-1">⬆️ [x, y-1] (sus)</option>
+                                <option value="0,1">⬇️ [x, y+1] (jos)</option>
+                                <option value="multi_inverter">✨ [x, y] + vecinii [x-1,y] și [x+1,y]</option>
+                            </select>
+                            <select id="visual-action" title="Alegeți transformarea">
+                                <option value="set_1" selected>🟢 Devine 1 (se aprinde)</option>
+                                <option value="set_0">🔴 Devine 0 (se stinge)</option>
+                                <option value="invert">🔄 Se inversează (0 ↔ 1)</option>
+                                <option value="keep">⏸ Se menține</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button id="btn-add-visual-rule" class="btn-accent">➕ Adaugă Regula în Simulator</button>
+                </div>
+
+                <!-- Mod 2: Introducere directă text cu șabloane rapide -->
+                <div id="tab-content-text" class="tab-content">
+                    <label class="field-label">Alegeți un șablon rapid cu 1-click:</label>
+                    <div class="template-chips">
+                        <button type="button" class="btn-chip btn-template" data-template="pentru campul curent [x,y], daca am vecinii [[x+1,y], [x-1,y]] sa aiba loc urmatoarele stari: campurile [x,y] se transforma din 0 in 1">
+                            💡 Vecinii orizontali aprind [x,y]
+                        </button>
+                        <button type="button" class="btn-chip btn-template" data-template="pentru campul curent [x,y], daca am vecinii [[x,y-1]=1, [x,y+1]=1] sa aiba loc urmatoarele stari: campurile [x,y] se inverseaza">
+                            💡 Vecinii verticali inversează [x,y]
+                        </button>
+                        <button type="button" class="btn-chip btn-template" data-template="pentru campul curent [x,y]=1, daca am vecinii [[x+1,y]=0, [x-1,y]=0] sa aiba loc: campurile [x,y] se transforma din 1 in 0">
+                            💡 Stingere dacă stânga și dreapta sunt 0
+                        </button>
+                        <button type="button" class="btn-chip btn-template" data-template="pentru campul curent [x,y], daca am vecinii [[x+1,y]=1, [x-1,y]=1] sa aiba loc urmatoarele stari: campurile [x,y] se transforma in 1, [x+1,y] se transforma din 1 in 0">
+                            💡 Multi-câmp: aprinde [x,y] și stinge [x+1,y]
+                        </button>
+                    </div>
+
+                    <label for="custom-rule-text" class="field-label" style="margin-top: 0.5rem;">Sau scrieți textul regulii:</label>
                     <textarea
                         id="custom-rule-text"
-                        placeholder="Exemplu:&#10;pentru campul curent [x,y], daca am vecinii [[x+1,y], [x-1,y]] sa aiba loc urmatoarele stari: campurile [x,y] se transforma din 0 in 1&#10;&#10;sau mai multe tinte:&#10;daca vecinii [[x+1,y]=1, [x,y+1]=1] atunci campurile [x,y] se transforma in 1, [x+1,y] se transforma din 1 in 0"
+                        placeholder="Exemplu:&#10;pentru campul curent [x,y], daca am vecinii [[x+1,y], [x-1,y]] sa aiba loc urmatoarele stari: campurile [x,y] se transforma din 0 in 1"
                         rows="4"
                     ></textarea>
-                    <div class="button-row">
-                        <button id="btn-parse-add-rule" class="btn-accent">➕ Parsează & Adaugă Regulă</button>
-                    </div>
-                </div>
 
-                <!-- Mod 2: Constructor Vizual Interactiv -->
-                <div id="tab-content-visual" class="tab-content">
-                    <div class="rule-field">
-                        <label class="field-label">Starea celulei curente <code>[x, y]</code>:</label>
-                        <select id="visual-current-state">
-                            <option value="-1">Oricare (*)</option>
-                            <option value="0" selected>0 (Moartă)</option>
-                            <option value="1">1 (Vie)</option>
-                        </select>
-                    </div>
-
-                    <div class="rule-field">
-                        <label class="field-label">Configurație vecini relative <code>[x+dx, y+dy]</code>:</label>
-                        <p class="mini-hint">Click pe căsuțe: ⬜ Oricare | 🟢 Trebuie să fie 1 | 🔴 Trebuie să fie 0</p>
-                        <div id="pattern-grid-container" class="pattern-grid-container">
-                            <!-- Grilă 5x5 generată automat prin JS -->
-                        </div>
-                    </div>
-
-                    <div class="rule-field">
-                        <label class="field-label">Câmpuri țintă & Acțiune:</label>
-                        <div class="target-field-row">
-                            <select id="visual-target-field">
-                                <option value="0,0" selected>Câmpul curent [x, y]</option>
-                                <option value="1,0">[x+1, y] (dreapta)</option>
-                                <option value="-1,0">[x-1, y] (stânga)</option>
-                                <option value="0,1">[x, y+1] (jos)</option>
-                                <option value="0,-1">[x, y-1] (sus)</option>
-                                <option value="1,1">[x+1, y+1] (diagonală)</option>
-                            </select>
-                            <select id="visual-action">
-                                <option value="set_1" selected>Devine 1 (din 0 în 1)</option>
-                                <option value="set_0">Devine 0 (din 1 în 0)</option>
-                                <option value="invert">Invers (0 ↔ 1)</option>
-                                <option value="keep">Se menține</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <button id="btn-add-visual-rule" class="btn-accent">➕ Adaugă Regulă Vizuală</button>
+                    <button id="btn-parse-add-rule" class="btn-accent">➕ Parsează & Adaugă Regula</button>
                 </div>
 
                 <!-- Feedback mesaje -->
@@ -129,20 +197,22 @@
                 <!-- Lista Regulilor Active -->
                 <div class="active-rules-header">
                     <h4>📋 Reguli Active (<span id="rules-count-badge">0</span>)</h4>
-                    <button id="btn-clear-rules" class="btn-tiny" title="Șterge toate regulile">Șterge tot</button>
+                    <div class="rules-header-actions">
+                        <button id="btn-clear-rules" class="btn-tiny" title="Șterge toate regulile">Șterge tot</button>
+                    </div>
                 </div>
                 <div id="active-rules-list" class="active-rules-list">
-                    <p class="placeholder">Nicio regulă activă. Adăugați o regulă sau alegeți o presetare mai jos.</p>
+                    <p class="placeholder">Nicio regulă activă.</p>
                 </div>
 
-                <!-- Presetări Rapide -->
+                <!-- Presetări Rapide Gata de Rulare -->
                 <div class="presets-section">
-                    <h4>⚡ Presetări Rapide & Default</h4>
+                    <h4>⚡ Presetări Rapide cu 1-Click</h4>
                     <div class="btn-group presets-grid">
-                        <button id="btn-reset-default" class="btn-preset btn-preset-highlight" title="Reîncarcă setul de reguli implicite (Game of Life B3/S23)">⭐ Reguli Default</button>
-                        <button id="btn-preset-gol" class="btn-preset" title="Conway's Game of Life (B3/S23)">🧬 Game of Life</button>
-                        <button id="btn-preset-seeds" class="btn-preset" title="Seeds (B2/S)">🌱 Seeds</button>
+                        <button id="btn-reset-default" class="btn-preset btn-preset-highlight" title="Reîncarcă setul de reguli implicite (Conway's Game of Life B3/S23)">⭐ Reguli Default (GoL)</button>
                         <button id="btn-preset-inverter" class="btn-preset" title="Regulă relativă: vecinii [x+1,y] și [x-1,y] inversează [x,y]">🔄 Inversor [x, y]</button>
+                        <button id="btn-preset-seeds" class="btn-preset" title="Seeds (B2/S)">🌱 Seeds</button>
+                        <button id="btn-preset-wave" class="btn-preset" title="Val de propagare orizontală spre dreapta">🌊 Propagare Dreapta</button>
                     </div>
                 </div>
 
@@ -150,8 +220,8 @@
                 <div class="rule-field-inline">
                     <label for="rule-boundary">Margini grid:</label>
                     <select id="rule-boundary">
-                        <option value="wrap" selected>Toroidal (wrap)</option>
-                        <option value="dead">Margine moartă (dead)</option>
+                        <option value="wrap" selected>Toroidal (marginile se unesc)</option>
+                        <option value="dead">Margine moartă (celule 0 în afară)</option>
                     </select>
                 </div>
 
@@ -163,10 +233,10 @@
                 <h3>Analiză</h3>
                 <select id="analysis-type">
                     <option value="state_after_n">Stare după N iterații</option>
-                    <option value="steady_state">Stare stabilă</option>
+                    <option value="steady_state">Stare stabilă (still life)</option>
                     <option value="pattern_search">Căutare configurație</option>
-                    <option value="cell_count">Contorizare celule</option>
-                    <option value="cycle_detection">Detectare ciclu</option>
+                    <option value="cell_count">Contorizare celule active</option>
+                    <option value="cycle_detection">Detectare ciclu periodic</option>
                 </select>
                 <input type="number" id="analysis-param-n" placeholder="N (iterații)" min="1" value="100">
                 <button id="btn-analyze">📊 Calculează</button>
