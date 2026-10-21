@@ -272,3 +272,27 @@ Pentru eficiență, păstrez doar starea curentă și informațiile necesare în
 - `AI_INTERACTIONS.md` (rezolvat conflict, actualizat cu Pasul 10)
 
 ---
+
+
+### [2026-10-21 / Pasul 11] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Întrebare privind pașii exacți de pornire a serverului local (localhost) pentru rularea interfeței aplicației CelLab.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Configurare mediu:**
+   - Verificat dependențele din mediul de rulare și instalat pachetele necesare din `requirements.txt` (`fastapi`, `uvicorn[standard]`, `websockets`, `httpx`).
+   - Confirmat importul corect al modulului principal FastAPI (`ui.app`).
+2. **Ghidare pas cu pas pentru pornirea localhost:**
+   - Rularea scriptului dedicat: `py -3 scripts/run_dev.py` (sau `python scripts/run_dev.py`).
+   - Accesarea interfeței web în browser la adresa `http://localhost:8000`.
+   - Procedura de oprire a serverului (`Ctrl + C` în terminal).
+3. **Actualizare Audit Log:**
+   - Înregistrat Pasul 11 în `AI_INTERACTIONS.md` și sincronizat pe GitHub.
+
+**Fișiere create/modificate:**
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 11)
+
+---
