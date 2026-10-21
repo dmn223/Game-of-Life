@@ -31,6 +31,22 @@ const ApiClient = {
     },
 
     /**
+     * Obține setul de reguli default.
+     */
+    async getDefaultRules() {
+        const r = await fetch(`${API_BASE}/rules/default`);
+        return r.json();
+    },
+
+    /**
+     * Resetează regulile de pe server la setul default.
+     */
+    async resetDefaultRules() {
+        const r = await fetch(`${API_BASE}/rules/reset_default`, { method: 'POST' });
+        return r.json();
+    },
+
+    /**
      * Trimite un text în limbaj natural / sintaxă [x, y] pentru a fi parsat pe backend.
      */
     async parseCustomRule(text) {

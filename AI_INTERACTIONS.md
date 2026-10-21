@@ -341,3 +341,43 @@ Interfața trebuie să fie intuitivă și să permită rularea efectivă a simul
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 12)
 
 ---
+
+
+### [2026-10-21 / Pasul 13] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Cerere de creare a unui set de reguli care să acționeze ca reguli default (implicite) în cazul în care utilizatorul nu introduce reguli proprii.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Definire Set Reguli Default (Conway's Game of Life B3/S23):**
+   - **Supraviețuire:** O celulă vie `[x,y]=1` cu 2 sau 3 vecini vii supraviețuiește (se menține 1).
+   - **Naștere:** O celulă moartă `[x,y]=0` cu exact 3 vecini vii devine vie (se transformă din 0 în 1).
+   - **Subpopulare:** O celulă vie `[x,y]=1` cu mai puțin de 2 vecini vii moare (se transformă din 1 în 0).
+   - **Suprapopulare:** O celulă vie `[x,y]=1` cu mai mult de 3 vecini vii moare (se transformă din 1 în 0).
+
+2. **Integrare Backend (`ui/api/routes.py`):**
+   - Simulatorul este pre-populat cu setul de reguli default la pornire.
+   - În cazul în care lista de reguli active este lăsată goală de către utilizator, motorul de simulare face fallback automat pe setul de reguli default, permițând rularea simulării fără nicio eroare de tipul „lipsă reguli”.
+   - Adăugate endpoint-uri REST dedicate: `GET /api/rules/default` și `POST /api/rules/reset_default`.
+   - Îmbunătățită robustețea `_step_simulation()` prin deducerea dinamică a dimensiunilor gridului.
+
+3. **Integrare Frontend (`ui/static/`):**
+   - Regulile default sunt încărcate automat la deschiderea paginii și evidențiate în lista activă cu eticheta `Default`.
+   - Adăugat butonul cu evidențiere `⭐ Reguli Default` în panoul de presetări pentru revenirea instantă la regulile implicite oricând se dorește.
+   - Adăugate metode în `ApiClient` (`getDefaultRules`, `resetDefaultRules`).
+
+4. **Validare:**
+   - Testat comportamentul de oscilație al oscilatorului Blinker sub regulile default restaurate automat — test confirmat.
+   - Rulat suita pytest: 18 teste trecute cu succes.
+
+**Fișiere create/modificate:**
+- `ui/api/routes.py` (definire `DEFAULT_RULES`, fallback automat, endpoint-uri de reset)
+- `ui/static/index.html` (buton dedicat pentru reguli default în panoul de presetări)
+- `ui/static/css/style.css` (stiluri pentru carduri default, badge-uri și buton de reset default)
+- `ui/static/js/api_client.js` (metode `getDefaultRules` și `resetDefaultRules`)
+- `ui/static/js/rules_panel.js` (afișare etichetă default pe carduri și handler de reîncărcare)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 13)
+
+---

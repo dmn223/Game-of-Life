@@ -523,6 +523,33 @@ textarea:focus, select:focus, input:focus {
     color: var(--accent);
 }
 
+.rule-card.rule-card-default {
+    border-left: 3px solid var(--accent);
+}
+
+.badge-default-tag {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.35rem;
+    background-color: rgba(0, 255, 136, 0.15);
+    color: var(--accent);
+    border-radius: 4px;
+    font-weight: 700;
+    margin-left: 0.3rem;
+    vertical-align: middle;
+}
+
+.btn-preset-highlight {
+    background-color: rgba(0, 255, 136, 0.1) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+    font-weight: 600;
+}
+
+.btn-preset-highlight:hover {
+    background-color: var(--accent) !important;
+    color: #0b0c16 !important;
+}
+
 .btn-delete-rule {
     background: transparent;
     border: none;

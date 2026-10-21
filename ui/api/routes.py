@@ -1,6 +1,7 @@
 """Endpoint-uri REST API — Motor de simulare integrat pentru CelLab.
 
 Suportă:
+- Reguli implicite (default) Conway's Game of Life (B3/S23) dacă utilizatorul nu definește altele
 - Reguli bazate pe vecinătăți relative [x+dx, y+dy]
 - Modificarea unei liste de câmpuri țintă relative [x+dx, y+dy] (devine 1, devine 0, invers, menține)
 - Execuția simultană a tuturor regulilor aplicabile
@@ -11,6 +12,7 @@ Suportă:
 
 from __future__ import annotations
 
+import copy
 import json
 import random
 import re
@@ -23,6 +25,84 @@ from pydantic import BaseModel
 router = APIRouter(tags=["cellab"])
 
 # ============================================================
+# Reguli Default (Conway's Game of Life: B3 / S23)
+# ============================================================
+DEFAULT_RULES: list[dict[str, Any]] = [
+    {
+        "name": "Supraviețuire (2-3 vecini)",
+        "description": "O celulă vie [x,y]=1 cu 2 sau 3 vecini vii supraviețuiește (se menține 1)",
+        "current_state": 1,
+        "count_conditions": [{
+            "state": 1,
+            "min_count": 2,
+            "max_count": 3,
+            "neighborhood": "moore"
+        }],
+        "effects": [{
+            "dx": 0,
+            "dy": 0,
+            "action": "set_1"
+        }],
+        "result_state": 1,
+        "is_default": True,
+    },
+    {
+        "name": "Naștere (exact 3 vecini)",
+        "description": "O celulă moartă [x,y]=0 cu exact 3 vecini vii devine vie (se transformă din 0 în 1)",
+        "current_state": 0,
+        "count_conditions": [{
+            "state": 1,
+            "min_count": 3,
+            "max_count": 3,
+            "neighborhood": "moore"
+        }],
+        "effects": [{
+            "dx": 0,
+            "dy": 0,
+            "action": "set_1"
+        }],
+        "result_state": 1,
+        "is_default": True,
+    },
+    {
+        "name": "Subpopulare (< 2 vecini)",
+        "description": "O celulă vie [x,y]=1 cu mai puțin de 2 vecini vii moare (se transformă din 1 în 0)",
+        "current_state": 1,
+        "count_conditions": [{
+            "state": 1,
+            "min_count": 0,
+            "max_count": 1,
+            "neighborhood": "moore"
+        }],
+        "effects": [{
+            "dx": 0,
+            "dy": 0,
+            "action": "set_0"
+        }],
+        "result_state": 0,
+        "is_default": True,
+    },
+    {
+        "name": "Suprapopulare (> 3 vecini)",
+        "description": "O celulă vie [x,y]=1 cu 4 sau mai mulți vecini vii moare (se transformă din 1 în 0)",
+        "current_state": 1,
+        "count_conditions": [{
+            "state": 1,
+            "min_count": 4,
+            "max_count": 8,
+            "neighborhood": "moore"
+        }],
+        "effects": [{
+            "dx": 0,
+            "dy": 0,
+            "action": "set_0"
+        }],
+        "result_state": 0,
+        "is_default": True,
+    },
+]
+
+# ============================================================
 # Stare globală a simulării
 # ============================================================
 GRID_W = 50
@@ -30,16 +110,29 @@ GRID_H = 50
 
 _grid: list[list[int]] = [[0] * GRID_W for _ in range(GRID_H)]
 _generation: int = 0
-_rules: list[dict] = []
+# Inițializăm regulile active cu setul de reguli default
+_rules: list[dict] = copy.deepcopy(DEFAULT_RULES)
 _boundary: str = "wrap"  # "wrap" sau "dead"
+
+
+def _get_active_rules() -> list[dict]:
+    """Returnează regulile active; dacă lista e goală, returnează regulile default."""
+    global _rules
+    if not _rules:
+        _rules = copy.deepcopy(DEFAULT_RULES)
+    return _rules
 
 
 def _get_cell(r: int, c: int) -> int:
     """Returnează starea celulei, cu tratarea condiției la margine."""
+    h = len(_grid)
+    w = len(_grid[0]) if h > 0 else 0
+    if h == 0 or w == 0:
+        return 0
     if _boundary == "wrap":
-        return _grid[r % GRID_H][c % GRID_W]
+        return _grid[r % h][c % w]
     else:  # dead
-        if 0 <= r < GRID_H and 0 <= c < GRID_W:
+        if 0 <= r < h and 0 <= c < w:
             return _grid[r][c]
         return 0
 
@@ -59,19 +152,26 @@ def _count_neighbors(r: int, c: int, state: int, neighborhood: str = "moore") ->
 
 def _step_simulation():
     """Calculează o generație nouă aplicând TOATE regulile care se potrivesc simultan."""
-    global _grid, _generation
+    global _grid, _generation, _rules
+
+    effective_rules = _get_active_rules()
+
+    h = len(_grid)
+    w = len(_grid[0]) if h > 0 else 0
+    if h == 0 or w == 0:
+        return
 
     # Inițializăm noul grid cu o copie a stării curente
-    new_grid = [[_grid[r][c] for c in range(GRID_W)] for r in range(GRID_H)]
+    new_grid = [[_grid[r][c] for c in range(w)] for r in range(h)]
 
     # Colectăm acțiunile simultane pentru fiecare celulă țintă: (tr, tc) -> list[action]
     actions_on_cell: dict[tuple[int, int], list[str]] = {}
 
-    for r in range(GRID_H):
-        for c in range(GRID_W):
+    for r in range(h):
+        for c in range(w):
             curr_val = _grid[r][c]
 
-            for rule in _rules:
+            for rule in effective_rules:
                 # 1. Verificare stare celulă curentă [x, y]
                 req_state = rule.get("current_state", -1)
                 if req_state != -1 and curr_val != req_state:
@@ -83,7 +183,6 @@ def _step_simulation():
                 pattern_conds = rule.get("pattern_conditions", [])
                 if pattern_conds:
                     for cond in pattern_conds:
-                        # dr = rând (y), dc = coloană (x)
                         dr = cond.get("dy", cond.get("dr", 0))
                         dc = cond.get("dx", cond.get("dc", 0))
                         req_neighbor_state = cond.get("state", 1)
@@ -105,10 +204,8 @@ def _step_simulation():
                     matched = False
 
                 if matched:
-                    # Regula s-a potrivit! Se aplică toate efectele asupra câmpurilor țintă
                     effects = rule.get("effects", [])
                     if not effects:
-                        # Fallback pentru compatibilitate cu result_state pe celula curentă
                         res_state = rule.get("result_state", 1)
                         action = "set_1" if res_state == 1 else "set_0"
                         effects = [{"dx": 0, "dy": 0, "action": action}]
@@ -120,12 +217,12 @@ def _step_simulation():
 
                         # Calcul coordonate țintă cu boundary
                         if _boundary == "wrap":
-                            tr = (r + dr) % GRID_H
-                            tc = (c + dc) % GRID_W
+                            tr = (r + dr) % h
+                            tc = (c + dc) % w
                         else:
                             tr = r + dr
                             tc = c + dc
-                            if not (0 <= tr < GRID_H and 0 <= tc < GRID_W):
+                            if not (0 <= tr < h and 0 <= tc < w):
                                 continue
 
                         target_key = (tr, tc)
@@ -144,7 +241,7 @@ def _step_simulation():
             elif act in ("invert", "toggle", "invers"):
                 val = 1 - val
             elif act in ("keep", "mentine"):
-                pass  # Rămâne neschimbat
+                pass
         new_grid[tr][tc] = val
 
     _grid = new_grid
@@ -152,13 +249,7 @@ def _step_simulation():
 
 
 def _parse_custom_text_rule(text: str) -> Optional[dict]:
-    """Parsează o regulă scrisă în limbaj natural / semi-formal.
-    
-    Exemple acceptate:
-    - "pentru [x,y], daca vecinii [[x+1,y], [x-1,y]] sunt 1, atunci [x,y] devine 1"
-    - "daca vecinii [[x+1,y]=1, [x,y+1]=1] atunci [x,y]->invert, [x+1,y]->0"
-    - "pentru campul curent [x,y], daca am vecinii [[x+1,y], [x,y-1]] sa aiba loc urmatoarele stari: campurile [x,y] se transforma din 0 in 1"
-    """
+    """Parsează o regulă scrisă în limbaj natural / semi-formal."""
     clean_text = text.strip()
     if not clean_text:
         return None
@@ -170,38 +261,26 @@ def _parse_custom_text_rule(text: str) -> Optional[dict]:
         "effects": [],
     }
 
-    # Stare celulă curentă
     lower = clean_text.lower()
     if "celula curenta este 1" in lower or "starea 1" in lower or "campul curent este 1" in lower:
         rule["current_state"] = 1
     elif "celula curenta este 0" in lower or "starea 0" in lower or "campul curent este 0" in lower:
         rule["current_state"] = 0
 
-    # Căutare vecini: potrivim [[x+1,y], ...] sau [x+1, y]
-    # Regex pentru coordonate relative: [x±N, y±M] sau [±N, ±M]
     coord_pattern = re.compile(
         r'\[\s*(?:x\s*([+-]\s*\d+)?)?\s*,\s*(?:y\s*([+-]\s*\d+)?)?\s*\](?:\s*=\s*([01]))?',
         re.IGNORECASE
     )
 
-    # Separăm secțiunea de condiții (dacă am vecinii ...) de secțiunea de efecte (atunci / sa aiba loc ...)
     split_parts = re.split(r'atunci|sa\s+aiba\s+loc|urmatoarele\s+stari|then|=>', clean_text, flags=re.IGNORECASE)
     cond_section = split_parts[0]
     effect_section = split_parts[1] if len(split_parts) > 1 else ""
 
-    # Extragem vecinii din secțiunea de condiție
     for match in coord_pattern.finditer(cond_section):
         dx_str, dy_str, state_str = match.groups()
-        # Parsăm dx
-        dx = 0
-        if dx_str:
-            dx = int(dx_str.replace(" ", ""))
-        # Parsăm dy
-        dy = 0
-        if dy_str:
-            dy = int(dy_str.replace(" ", ""))
+        dx = int(dx_str.replace(" ", "")) if dx_str else 0
+        dy = int(dy_str.replace(" ", "")) if dy_str else 0
 
-        # Nu luăm celula [x,y] ca vecin
         if dx == 0 and dy == 0:
             continue
 
@@ -212,9 +291,7 @@ def _parse_custom_text_rule(text: str) -> Optional[dict]:
             "state": req_state
         })
 
-    # Extragem efectele din secțiunea de efecte
     if effect_section:
-        # Căutăm acțiunea generală dacă este menționată în text
         default_action = "set_1"
         if "din 0 in 1" in effect_section.lower() or "devine 1" in effect_section.lower() or "->1" in effect_section:
             default_action = "set_1"
@@ -225,7 +302,6 @@ def _parse_custom_text_rule(text: str) -> Optional[dict]:
         elif "mentin" in effect_section.lower() or "keep" in effect_section.lower():
             default_action = "keep"
 
-        # Căutăm coordonatele câmpurilor țintă
         target_matches = list(coord_pattern.finditer(effect_section))
         if target_matches:
             for match in target_matches:
@@ -245,14 +321,12 @@ def _parse_custom_text_rule(text: str) -> Optional[dict]:
                     "action": act
                 })
         else:
-            # Dacă nu s-au specificat coordonate în efecte, afectăm celula curentă [x, y]
             rule["effects"].append({
                 "dx": 0,
                 "dy": 0,
                 "action": default_action
             })
     else:
-        # Default: celula curentă devine 1
         rule["effects"].append({
             "dx": 0,
             "dy": 0,
@@ -303,15 +377,38 @@ class GridSizeRequest(BaseModel):
 async def set_rules(request: RulesRequest):
     """Setează regulile active ale automatului."""
     global _rules, _boundary
-    _rules = request.rules
+    if not request.rules:
+        # Dacă utilizatorul trimite listă goală, restaurăm regulile default
+        _rules = copy.deepcopy(DEFAULT_RULES)
+    else:
+        _rules = request.rules
     _boundary = request.boundary
-    return {"success": True, "rules_count": len(_rules)}
+    return {"success": True, "rules_count": len(_rules), "is_default": not bool(request.rules)}
 
 
 @router.get("/rules")
 async def get_rules():
-    """Returnează regulile active curente."""
-    return {"rules": _rules, "boundary": _boundary}
+    """Returnează regulile active curente (sau default dacă nu s-au setat altele)."""
+    effective = _get_active_rules()
+    return {"rules": effective, "boundary": _boundary, "is_default": _rules == DEFAULT_RULES}
+
+
+@router.get("/rules/default")
+async def get_default_rules():
+    """Returnează setul de reguli default (Conway's Game of Life B3/S23)."""
+    return {
+        "rules": DEFAULT_RULES,
+        "name": "Conway's Game of Life (B3/S23)",
+        "description": "Setul de reguli clasic: supraviețuire la 2-3 vecini, naștere la exact 3 vecini, moarte prin subpopulare (<2) sau suprapopulare (>3)."
+    }
+
+
+@router.post("/rules/reset_default")
+async def reset_to_default_rules():
+    """Resetează regulile active la setul default."""
+    global _rules
+    _rules = copy.deepcopy(DEFAULT_RULES)
+    return {"success": True, "rules": _rules, "rules_count": len(_rules)}
 
 
 @router.post("/rules/parse_custom")
@@ -327,13 +424,14 @@ async def parse_custom_rule(request: ParseCustomRuleRequest):
 async def get_state():
     """Returnează starea curentă a simulării."""
     active = sum(cell for row in _grid for cell in row)
+    effective_rules = _get_active_rules()
     return {
         "grid": _grid,
         "generation": _generation,
         "width": GRID_W,
         "height": GRID_H,
         "active_cells": active,
-        "rules_count": len(_rules),
+        "rules_count": len(effective_rules),
         "boundary": _boundary,
     }
 
@@ -393,9 +491,7 @@ async def resize_grid(request: GridSizeRequest):
 
 @router.post("/simulate/step")
 async def simulate_step():
-    """Calculează o singură generație pe baza regulilor."""
-    if not _rules:
-        raise HTTPException(status_code=400, detail="Nu sunt definite reguli. Adăugați reguli mai întâi.")
+    """Calculează o singură generație pe baza regulilor (folosește default dacă nu s-au setat altele)."""
     _step_simulation()
     active = sum(cell for row in _grid for cell in row)
     return {
@@ -408,8 +504,6 @@ async def simulate_step():
 @router.post("/simulate/run")
 async def simulate_run(request: SimulateRequest):
     """Rulează N generații."""
-    if not _rules:
-        raise HTTPException(status_code=400, detail="Nu sunt definite reguli.")
     for _ in range(request.steps):
         _step_simulation()
     active = sum(cell for row in _grid for cell in row)

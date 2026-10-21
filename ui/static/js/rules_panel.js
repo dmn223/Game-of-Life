@@ -52,6 +52,7 @@ class RulesPanel {
         this.ruleBoundary = document.getElementById('rule-boundary');
 
         // Presetări
+        this.btnResetDefault = document.getElementById('btn-reset-default');
         this.btnPresetGol = document.getElementById('btn-preset-gol');
         this.btnPresetSeeds = document.getElementById('btn-preset-seeds');
         this.btnPresetInverter = document.getElementById('btn-preset-inverter');
@@ -68,12 +69,12 @@ class RulesPanel {
         // Adăugare regulă vizuală
         this.btnAddVisualRule.addEventListener('click', () => this._addVisualRule());
 
-        // Ștergere toate regulile
+        // Ștergere toate regulile (restaurează default pe server dacă se simulează)
         this.btnClearRules.addEventListener('click', () => {
             this.rules = [];
             this._renderRulesList();
             this._applyRulesToServer();
-            this._showFeedback('Toate regulile au fost șterse.', 'success');
+            this._showFeedback('Toate regulile personalizate au fost șterse. (Dacă rulați, se vor aplica regulile implicite)', 'success');
         });
 
         // Aplicare manuală
@@ -83,6 +84,9 @@ class RulesPanel {
         this.ruleBoundary.addEventListener('change', () => this._applyRulesToServer());
 
         // Presetări
+        if (this.btnResetDefault) {
+            this.btnResetDefault.addEventListener('click', () => this._loadDefaultRules());
+        }
         this.btnPresetGol.addEventListener('click', () => this._loadPresetGoL());
         this.btnPresetSeeds.addEventListener('click', () => this._loadPresetSeeds());
         this.btnPresetInverter.addEventListener('click', () => this._loadPresetInverter());
@@ -369,10 +373,11 @@ class RulesPanel {
                 details += `<div><strong>Rezultat:</strong> [x, y] → devine ${rule.result_state}</div>`;
             }
 
+            const defaultBadge = rule.is_default ? '<span class="badge-default-tag">Default</span>' : '';
             html += `
-                <div class="rule-card">
+                <div class="rule-card ${rule.is_default ? 'rule-card-default' : ''}">
                     <div class="rule-card-header">
-                        <span class="rule-title">${rule.name || `Regula ${idx + 1}`}</span>
+                        <span class="rule-title">${rule.name || `Regula ${idx + 1}`} ${defaultBadge}</span>
                         <button class="btn-delete-rule" data-idx="${idx}" title="Șterge regula">✕</button>
                     </div>
                     <div class="rule-card-body">
@@ -411,6 +416,24 @@ class RulesPanel {
     }
 
     /**
+     * Încarcă setul de reguli implicite (Default: Conway's Game of Life)
+     */
+    async _loadDefaultRules() {
+        try {
+            const res = await ApiClient.resetDefaultRules();
+            if (res && res.rules) {
+                this.rules = res.rules;
+                this._renderRulesList();
+                this._showFeedback('⭐ S-au încărcat regulile implicite (Conway\'s Game of Life B3/S23)!', 'success');
+                return;
+            }
+        } catch (e) {
+            console.warn('Eroare resetDefaultRules, fallback la preset GoL:', e);
+        }
+        this._loadPresetGoL(true);
+    }
+
+    /**
      * Încărcare inițială
      */
     async _loadInitialRules() {
@@ -424,7 +447,7 @@ class RulesPanel {
         } catch (e) {}
 
         // Preset implicit: Conway's Game of Life
-        this._loadPresetGoL(false);
+        await this._loadDefaultRules();
     }
 
     // ==========================================
