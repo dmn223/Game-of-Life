@@ -1,478 +1,264 @@
 /**
- * CelLab Rules Panel — Editor intuitiv de reguli pentru automate celulare 2D.
+ * CelLab Rules Panel — Format Prestabilit de Reguli & Presetări Rapide Randomizate.
  *
- * Oferă:
- * - Constructor Vizual 3×3 simplu și intuitiv în jurul lui [x, y]
- * - Mod Text cu șabloane rapide 1-click
- * - Suport pentru reguli relative [x+dx, y+dy] și acțiuni simultane pe câmpuri multiple
- * - Toggle ON/OFF individual pentru fiecare regulă activă
- * - Presetări rapide (Default GoL B3/S23, Inversor [x,y], Seeds, Propagare)
- * - Aplicare automată instantanee la adăugare/modificare
+ * Format Prestabilit:
+ * [x,y] : DACA [x+dx,y+dy]=stare, ... ATUNCI [x+dx,y+dy] -> actiune
  */
 
 class RulesPanel {
     constructor() {
         this.rules = [];
-        this.visualCenterState = -1; // -1 = Oricare, 1 = Vie, 0 = Moartă
-        // Map de vecini 3x3: "dx,dy" -> state (0 = oricare, 1 = trebuie 1, -1 = trebuie 0)
-        this.neighborStates = {
-            '-1,-1': 0, '0,-1': 0, '1,-1': 0,
-            '-1,0':  0,          '1,0':  0,
-            '-1,1':  0, '0,1':  0, '1,1':  0,
-        };
-
-        // Expunem instanța global pentru acces facil din SimulationControls
         window.rulesPanel = this;
 
         this._bindElements();
         this._bindEvents();
-        this._updateVisualNeighborGrid();
-        this._renderRulesList();
-
-        // Încărcare inițială reguli de pe server sau setul default
-        this._loadInitialRules();
+        this._loadDefaultGoL(false);
     }
 
     _bindElements() {
-        // Tab-uri
-        this.tabBtnVisual = document.getElementById('tab-btn-visual');
-        this.tabBtnText = document.getElementById('tab-btn-text');
-        this.tabContentVisual = document.getElementById('tab-content-visual');
-        this.tabContentText = document.getElementById('tab-content-text');
+        // Câmp introducere regulă în format prestabilit
+        this.ruleFormatInput = document.getElementById('rule-format-input');
+        this.btnAddFormatRule = document.getElementById('btn-add-format-rule');
+        this.formatTemplateChips = document.querySelectorAll('.btn-format-chip');
 
-        // Mod Vizual 3x3
-        this.statePills = document.querySelectorAll('.btn-state-pill');
-        this.centerCellLabel = document.getElementById('center-cell-label');
-        this.nbCells = document.querySelectorAll('.nb-cell');
-        this.btnNbAny = document.getElementById('btn-nb-any');
-        this.btnNbHoriz = document.getElementById('btn-nb-horiz');
-        this.btnNbVert = document.getElementById('btn-nb-vert');
-        this.btnNbCross = document.getElementById('btn-nb-cross');
-        this.visualTargetField = document.getElementById('visual-target-field');
-        this.visualAction = document.getElementById('visual-action');
-        this.btnAddVisualRule = document.getElementById('btn-add-visual-rule');
+        // Constructor rapid cu butoane
+        this.quickCondSelect = document.getElementById('quick-cond-select');
+        this.quickActionSelect = document.getElementById('quick-action-select');
+        this.btnBuildQuickRule = document.getElementById('btn-build-quick-rule');
 
-        // Mod Text
-        this.customRuleText = document.getElementById('custom-rule-text');
-        this.btnParseAddRule = document.getElementById('btn-parse-add-rule');
-        this.templateButtons = document.querySelectorAll('.btn-template');
+        // Presetări rapide randomizate
+        this.btnPresetGolRandom = document.getElementById('btn-preset-gol-random');
+        this.btnPresetInvertRandom = document.getElementById('btn-preset-invert-random');
+        this.btnPresetWaveRandom = document.getElementById('btn-preset-wave-random');
+        this.btnPresetSeedsRandom = document.getElementById('btn-preset-seeds-random');
+        this.btnPresetChaosRandom = document.getElementById('btn-preset-chaos-random');
 
-        // Listă reguli & acțiuni
+        // Listă reguli active
         this.activeRulesList = document.getElementById('active-rules-list');
         this.rulesCountBadge = document.getElementById('rules-count-badge');
         this.btnClearRules = document.getElementById('btn-clear-rules');
-        this.btnApplyRules = document.getElementById('btn-apply-rules');
         this.ruleFeedback = document.getElementById('rule-feedback');
-        this.ruleBoundary = document.getElementById('rule-boundary');
-
-        // Presetări
-        this.btnResetDefault = document.getElementById('btn-reset-default');
-        this.btnPresetInverter = document.getElementById('btn-preset-inverter');
-        this.btnPresetSeeds = document.getElementById('btn-preset-seeds');
-        this.btnPresetWave = document.getElementById('btn-preset-wave');
     }
 
     _bindEvents() {
-        // Schimbare tab-uri
-        if (this.tabBtnVisual) {
-            this.tabBtnVisual.addEventListener('click', () => this._switchTab('visual'));
-        }
-        if (this.tabBtnText) {
-            this.tabBtnText.addEventListener('click', () => this._switchTab('text'));
-        }
-
-        // Selector stare celulă curentă [x, y]
-        this.statePills.forEach(pill => {
-            pill.addEventListener('click', () => {
-                this.statePills.forEach(p => p.classList.remove('active'));
-                pill.classList.add('active');
-                this.visualCenterState = parseInt(pill.dataset.state, 10);
-                if (this.centerCellLabel) {
-                    this.centerCellLabel.textContent = this.visualCenterState === 1 ? 'Vie (1)' : (this.visualCenterState === 0 ? 'Moartă (0)' : 'Oricare');
+        // Șabloane 1-click în format prestabilit
+        this.formatTemplateChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                if (this.ruleFormatInput) {
+                    this.ruleFormatInput.value = chip.dataset.rule;
+                    this.ruleFormatInput.focus();
                 }
             });
         });
 
-        // Click pe căsuțele de vecini 3x3
-        this.nbCells.forEach(cell => {
-            cell.addEventListener('click', () => {
-                const dx = cell.dataset.dx;
-                const dy = cell.dataset.dy;
-                const key = `${dx},${dy}`;
-                const cur = this.neighborStates[key] || 0;
-                // Ciclu intuitiv: 0 (oricare) -> 1 (trebuie 1) -> -1 (trebuie 0) -> 0
-                if (cur === 0) {
-                    this.neighborStates[key] = 1;
-                } else if (cur === 1) {
-                    this.neighborStates[key] = -1;
-                } else {
-                    this.neighborStates[key] = 0;
-                }
-                this._updateNeighborCellElement(cell, this.neighborStates[key]);
-            });
-        });
-
-        // Butoane rapide configurare vecini
-        if (this.btnNbAny) {
-            this.btnNbAny.addEventListener('click', () => {
-                Object.keys(this.neighborStates).forEach(k => this.neighborStates[k] = 0);
-                this._updateVisualNeighborGrid();
-            });
-        }
-        if (this.btnNbHoriz) {
-            this.btnNbHoriz.addEventListener('click', () => {
-                Object.keys(this.neighborStates).forEach(k => this.neighborStates[k] = 0);
-                this.neighborStates['-1,0'] = 1;
-                this.neighborStates['1,0'] = 1;
-                this._updateVisualNeighborGrid();
-            });
-        }
-        if (this.btnNbVert) {
-            this.btnNbVert.addEventListener('click', () => {
-                Object.keys(this.neighborStates).forEach(k => this.neighborStates[k] = 0);
-                this.neighborStates['0,-1'] = 1;
-                this.neighborStates['0,1'] = 1;
-                this._updateVisualNeighborGrid();
-            });
-        }
-        if (this.btnNbCross) {
-            this.btnNbCross.addEventListener('click', () => {
-                Object.keys(this.neighborStates).forEach(k => this.neighborStates[k] = 0);
-                this.neighborStates['-1,0'] = 1;
-                this.neighborStates['1,0'] = 1;
-                this.neighborStates['0,-1'] = 1;
-                this.neighborStates['0,1'] = 1;
-                this._updateVisualNeighborGrid();
-            });
+        // Adăugare regulă scrisă în format prestabilit
+        if (this.btnAddFormatRule) {
+            this.btnAddFormatRule.addEventListener('click', () => this._addRuleFromFormatInput());
         }
 
-        // Adăugare regulă vizuală
-        if (this.btnAddVisualRule) {
-            this.btnAddVisualRule.addEventListener('click', () => this._addVisualRule());
+        // Adăugare regulă prin constructorul rapid
+        if (this.btnBuildQuickRule) {
+            this.btnBuildQuickRule.addEventListener('click', () => this._addQuickRule());
         }
 
-        // Șabloane rapide text
-        this.templateButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (this.customRuleText) {
-                    this.customRuleText.value = btn.dataset.template;
-                    this.customRuleText.focus();
-                }
-            });
-        });
-
-        // Adăugare regulă din text
-        if (this.btnParseAddRule) {
-            this.btnParseAddRule.addEventListener('click', () => this._addRuleFromText());
+        // Presetări Rapide Randomizate (1-Click)
+        if (this.btnPresetGolRandom) {
+            this.btnPresetGolRandom.addEventListener('click', () => this.presetGolRandom());
+        }
+        if (this.btnPresetInvertRandom) {
+            this.btnPresetInvertRandom.addEventListener('click', () => this.presetInvertRandom());
+        }
+        if (this.btnPresetWaveRandom) {
+            this.btnPresetWaveRandom.addEventListener('click', () => this.presetWaveRandom());
+        }
+        if (this.btnPresetSeedsRandom) {
+            this.btnPresetSeedsRandom.addEventListener('click', () => this.presetSeedsRandom());
+        }
+        if (this.btnPresetChaosRandom) {
+            this.btnPresetChaosRandom.addEventListener('click', () => this.presetChaosRandom());
         }
 
-        // Ștergere toate regulile
+        // Șterge toate regulile
         if (this.btnClearRules) {
             this.btnClearRules.addEventListener('click', () => {
                 this.rules = [];
-                this._renderRulesList();
-                this._applyRulesToServer();
-                this._showFeedback('Toate regulile au fost șterse. Simulatorul va folosi regulile default Conway la rulare.', 'warning');
+                this._onRulesUpdated();
+                this._showFeedback('Toate regulile au fost șterse.', 'warning');
             });
-        }
-
-        // Buton Aplicare manuală
-        if (this.btnApplyRules) {
-            this.btnApplyRules.addEventListener('click', () => this._applyRulesToServer(true));
-        }
-
-        // Schimbare margine
-        if (this.ruleBoundary) {
-            this.ruleBoundary.addEventListener('change', () => this._applyRulesToServer());
-        }
-
-        // Presetări rapide
-        if (this.btnResetDefault) {
-            this.btnResetDefault.addEventListener('click', () => this._loadDefaultRules());
-        }
-        if (this.btnPresetInverter) {
-            this.btnPresetInverter.addEventListener('click', () => this._loadPresetInverter());
-        }
-        if (this.btnPresetSeeds) {
-            this.btnPresetSeeds.addEventListener('click', () => this._loadPresetSeeds());
-        }
-        if (this.btnPresetWave) {
-            this.btnPresetWave.addEventListener('click', () => this._loadPresetWave());
-        }
-    }
-
-    _switchTab(tab) {
-        if (tab === 'visual') {
-            this.tabBtnVisual.classList.add('active');
-            this.tabBtnText.classList.remove('active');
-            this.tabContentVisual.classList.add('active');
-            this.tabContentText.classList.remove('active');
-        } else {
-            this.tabBtnText.classList.add('active');
-            this.tabBtnVisual.classList.remove('active');
-            this.tabContentText.classList.add('active');
-            this.tabContentVisual.classList.remove('active');
-        }
-    }
-
-    _updateVisualNeighborGrid() {
-        this.nbCells.forEach(cell => {
-            const dx = cell.dataset.dx;
-            const dy = cell.dataset.dy;
-            const st = this.neighborStates[`${dx},${dy}`] || 0;
-            this._updateNeighborCellElement(cell, st);
-        });
-    }
-
-    _updateNeighborCellElement(cell, state) {
-        cell.classList.remove('st-any', 'st-one', 'st-zero');
-        const statusSpan = cell.querySelector('.nb-status');
-        if (state === 1) {
-            cell.classList.add('st-one');
-            if (statusSpan) statusSpan.textContent = '🟢 Trebuie 1';
-        } else if (state === -1) {
-            cell.classList.add('st-zero');
-            if (statusSpan) statusSpan.textContent = '🔴 Trebuie 0';
-        } else {
-            cell.classList.add('st-any');
-            if (statusSpan) statusSpan.textContent = '⚪ Oricare';
         }
     }
 
     /**
-     * Construiește și adaugă regula configurată vizual
+     * Parsează un șir conform Formatului Prestabilit:
+     * [x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> 1, [x+1,y] -> 0
      */
-    _addVisualRule() {
-        const currState = this.visualCenterState;
-        const targetVal = this.visualTargetField ? this.visualTargetField.value : '0,0';
-        const action = this.visualAction ? this.visualAction.value : 'set_1';
+    parsePredefinedRule(text) {
+        const clean = text.trim();
+        if (!clean) return null;
 
-        // Colectăm condițiile de vecini active (diferite de 0)
+        // Căutare delimitatori DACA / IF și ATUNCI / THEN / SA AIBA LOC / ->
+        const parts = clean.split(/ATUNCI|THEN|SA\s+AIBA\s+LOC|=>/i);
+        const ifPart = parts[0] || '';
+        const thenPart = parts[1] || '';
+
+        // 1. Verificare stare curentă din antet: [x,y]=1 sau [x,y]=0
+        let currentState = -1;
+        const centerMatch = ifPart.match(/\[\s*x\s*,\s*y\s*\]\s*=\s*([01])/i);
+        if (centerMatch) {
+            currentState = parseInt(centerMatch[1], 10);
+        }
+
+        // 2. Extragere condiții vecini [x+dx, y+dy]=stare
         const patternConds = [];
-        Object.entries(this.neighborStates).forEach(([key, val]) => {
-            if (val !== 0) {
-                const [dx, dy] = key.split(',').map(Number);
-                patternConds.push({
-                    dx,
-                    dy,
-                    state: val === 1 ? 1 : 0,
-                });
-            }
-        });
+        const coordRegex = /\[\s*x\s*([+-]\s*\d+)?\s*,\s*y\s*([+-]\s*\d+)?\s*\](?:\s*=\s*([01]))?/gi;
+        let m;
 
-        if (currState === -1 && patternConds.length === 0) {
-            this._showFeedback('Selectați cel puțin o condiție (stare celulă curentă sau cel puțin un vecin).', 'warning');
+        // Căutăm doar după cuvântul DACA / IF dacă există
+        const condSub = ifPart.includes(':') ? ifPart.split(':')[1] : ifPart;
+
+        while ((m = coordRegex.exec(condSub)) !== null) {
+            const dx = m[1] ? parseInt(m[1].replace(/\s+/g, ''), 10) : 0;
+            const dy = m[2] ? parseInt(m[2].replace(/\s+/g, ''), 10) : 0;
+            const state = m[3] !== undefined ? parseInt(m[3], 10) : 1;
+            if (dx === 0 && dy === 0) continue; // centrul a fost deja citit
+            patternConds.push({ dx, dy, state });
+        }
+
+        // 3. Extragere efecte ATUNCI: [x+dx, y+dy] -> actiune
+        const effects = [];
+        const effRegex = /\[\s*x\s*([+-]\s*\d+)?\s*,\s*y\s*([+-]\s*\d+)?\s*\](?:\s*->|\s*devine|\s*se\s*transforma\s*in|\s*=\s*)?\s*([a-zA-Z0-9_]+)/gi;
+
+        while ((m = effRegex.exec(thenPart)) !== null) {
+            const dx = m[1] ? parseInt(m[1].replace(/\s+/g, ''), 10) : 0;
+            const dy = m[2] ? parseInt(m[2].replace(/\s+/g, ''), 10) : 0;
+            const actRaw = (m[3] || '1').toLowerCase();
+            let action = 'set_1';
+            if (actRaw === '0' || actRaw === 'stins' || actRaw === 'mort') action = 'set_0';
+            else if (actRaw === 'invers' || actRaw === 'invert' || actRaw === 'toggle') action = 'invert';
+            else if (actRaw === 'keep' || actRaw === 'mentine') action = 'keep';
+
+            effects.push({ dx, dy, action });
+        }
+
+        // Dacă nu s-a specificat o țintă explicită în ATUNCI, ținta implicită este [x,y]
+        if (effects.length === 0) {
+            let defAct = 'set_1';
+            const lowerThen = thenPart.toLowerCase();
+            if (lowerThen.includes('0') || lowerThen.includes('stins')) defAct = 'set_0';
+            else if (lowerThen.includes('invers') || lowerThen.includes('invert')) defAct = 'invert';
+            effects.push({ dx: 0, dy: 0, action: defAct });
+        }
+
+        if (patternConds.length === 0 && currentState === -1) {
+            return null;
+        }
+
+        return {
+            name: `Regulă Format #${this.rules.length + 1}`,
+            description: clean,
+            current_state: currentState,
+            pattern_conditions: patternConds,
+            effects: effects,
+            enabled: true,
+        };
+    }
+
+    _addRuleFromFormatInput() {
+        const raw = this.ruleFormatInput ? this.ruleFormatInput.value.trim() : '';
+        if (!raw) {
+            this._showFeedback('Introduceți o regulă sau alegeți un șablon de mai sus.', 'warning');
             return;
         }
 
-        // Construim lista de efecte
-        let effects = [];
-        let targetDesc = '[x, y]';
+        const parsed = this.parsePredefinedRule(raw);
+        if (!parsed) {
+            this._showFeedback('Format invalid. Folosiți: [x,y] : DACA [x-1,y]=1 ATUNCI [x,y] -> 1', 'error');
+            return;
+        }
 
-        if (targetVal === 'multi_inverter') {
-            effects = [
-                { dx: 0, dy: 0, action: action },
-                { dx: 1, dy: 0, action: 'set_0' },
-                { dx: -1, dy: 0, action: 'set_0' },
+        this.rules.push(parsed);
+        this._onRulesUpdated();
+        this._showFeedback('✅ Regulă adăugată și activată!', 'success');
+        if (this.ruleFormatInput) this.ruleFormatInput.value = '';
+    }
+
+    _addQuickRule() {
+        const condType = this.quickCondSelect ? this.quickCondSelect.value : 'horiz';
+        const actionType = this.quickActionSelect ? this.quickActionSelect.value : 'set_1';
+
+        let patternConds = [];
+        let name = '';
+        let formatText = '';
+
+        if (condType === 'horiz') {
+            patternConds = [{ dx: -1, dy: 0, state: 1 }, { dx: 1, dy: 0, state: 1 }];
+            name = 'Vecini orizontali [x-1,y] & [x+1,y] = 1';
+            formatText = `[x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> ${actionType === 'set_1' ? '1' : (actionType === 'set_0' ? '0' : 'invers')}`;
+        } else if (condType === 'vert') {
+            patternConds = [{ dx: 0, dy: -1, state: 1 }, { dx: 0, dy: 1, state: 1 }];
+            name = 'Vecini verticali [x,y-1] & [x,y+1] = 1';
+            formatText = `[x,y] : DACA [x,y-1]=1, [x,y+1]=1 ATUNCI [x,y] -> ${actionType === 'set_1' ? '1' : (actionType === 'set_0' ? '0' : 'invers')}`;
+        } else if (condType === 'left') {
+            patternConds = [{ dx: -1, dy: 0, state: 1 }];
+            name = 'Vecin stânga [x-1,y] = 1';
+            formatText = `[x,y] : DACA [x-1,y]=1 ATUNCI [x,y] -> ${actionType === 'set_1' ? '1' : '0'}`;
+        } else if (condType === 'cross') {
+            patternConds = [
+                { dx: 0, dy: -1, state: 1 }, { dx: 0, dy: 1, state: 1 },
+                { dx: -1, dy: 0, state: 1 }, { dx: 1, dy: 0, state: 1 }
             ];
-            targetDesc = '[x,y] și vecinii orizontali';
-        } else {
-            const [tdx, tdy] = targetVal.split(',').map(Number);
-            effects = [{ dx: tdx, dy: tdy, action: action }];
-            targetDesc = (tdx === 0 && tdy === 0) ? '[x, y]' : `[x${tdx >= 0 ? '+' + tdx : tdx}, y${tdy >= 0 ? '+' + tdy : tdy}]`;
+            name = 'Cruce (+) toți 4 vecini = 1';
+            formatText = `[x,y] : DACA [x,y-1]=1, [x,y+1]=1, [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> ${actionType === 'set_1' ? '1' : '0'}`;
         }
-
-        const actionText = {
-            'set_1': 'devine 1 (din 0 în 1)',
-            'set_0': 'devine 0 (din 1 în 0)',
-            'invert': 'se inversează (0 ↔ 1)',
-            'keep': 'se menține',
-        }[action] || action;
-
-        // Construim descriere clară în română
-        let condDesc = [];
-        if (currState !== -1) {
-            condDesc.push(`[x, y] este ${currState}`);
-        }
-        if (patternConds.length > 0) {
-            const pStr = patternConds.map(p => `[x${p.dx >= 0 ? '+' + p.dx : p.dx}, y${p.dy >= 0 ? '+' + p.dy : p.dy}]=${p.state}`).join(', ');
-            condDesc.push(`vecinii (${pStr})`);
-        }
-        const fullDesc = `Dacă ${condDesc.join(' și ')} ➔ ${targetDesc} ${actionText}`;
 
         const newRule = {
-            name: `Regulă Vizuală #${this.rules.length + 1}`,
-            description: fullDesc,
-            current_state: currState,
+            name: name,
+            description: formatText,
+            current_state: -1,
             pattern_conditions: patternConds,
-            effects: effects,
+            effects: [{ dx: 0, dy: 0, action: actionType }],
             enabled: true,
         };
 
         this.rules.push(newRule);
+        this._onRulesUpdated();
+        this._showFeedback('✅ Regulă adăugată din asistent!', 'success');
+    }
+
+    _onRulesUpdated() {
         this._renderRulesList();
-        this._applyRulesToServer();
-        this._showFeedback(`✅ Regula a fost adăugată și este ACTIVĂ pe simulator!`, 'success');
-
-        // Resetăm selecția de vecini pentru comoditate
-        Object.keys(this.neighborStates).forEach(k => this.neighborStates[k] = 0);
-        this._updateVisualNeighborGrid();
-    }
-
-    /**
-     * Adăugare regulă prin parsarea textului în limbaj natural
-     */
-    async _addRuleFromText() {
-        const rawText = this.customRuleText.value.trim();
-        if (!rawText) {
-            this._showFeedback('Introduceți textul regulii sau alegeți un șablon de mai sus.', 'warning');
-            return;
-        }
-
-        try {
-            const res = await ApiClient.parseCustomRule(rawText);
-            if (res && res.success && res.rule) {
-                const parsed = res.rule;
-                parsed.name = `Regulă Text #${this.rules.length + 1}`;
-                parsed.description = rawText;
-                parsed.enabled = true;
-                this.rules.push(parsed);
-                this._renderRulesList();
-                await this._applyRulesToServer();
-                this._showFeedback('✅ Regula din text a fost parsatǎ și adăugată cu succes!', 'success');
-                this.customRuleText.value = '';
-                return;
-            }
-        } catch (err) {}
-
-        // Fallback parsare locală
-        const localRule = this._parseTextLocally(rawText);
-        if (localRule) {
-            localRule.enabled = true;
-            this.rules.push(localRule);
-            this._renderRulesList();
-            this._applyRulesToServer();
-            this._showFeedback('✅ Regula a fost parsatǎ și activată pe simulator!', 'success');
-            this.customRuleText.value = '';
-        } else {
-            this._showFeedback('❌ Nu s-a putut parsa regula. Asigurați-vă că folosiți coordonate de tipul [x+1, y].', 'error');
+        if (window.controls) {
+            window.controls.clearCache(); // Golim cache-ul Hashmap când se schimbă regulile
         }
     }
 
-    _parseTextLocally(text) {
-        const coordRegex = /\[\s*(?:x\s*([+-]\s*\d+)?)?\s*,\s*(?:y\s*([+-]\s*\d+)?)?\s*\](?:\s*=\s*([01]))?/gi;
-        const parts = text.split(/atunci|sa\s+aiba\s+loc|urmatoarele\s+stari|then|=>/i);
-        const condPart = parts[0] || '';
-        const effPart = parts[1] || '';
-
-        const patternConds = [];
-        let match;
-        while ((match = coordRegex.exec(condPart)) !== null) {
-            const dx = match[1] ? parseInt(match[1].replace(/\s+/g, ''), 10) : 0;
-            const dy = match[2] ? parseInt(match[2].replace(/\s+/g, ''), 10) : 0;
-            const state = match[3] !== undefined ? parseInt(match[3], 10) : 1;
-            if (dx === 0 && dy === 0) continue;
-            patternConds.push({ dx, dy, state });
-        }
-
-        if (patternConds.length === 0) return null;
-
-        let action = 'set_1';
-        const effLower = effPart.toLowerCase();
-        if (effLower.includes('din 1 in 0') || effLower.includes('devine 0') || effLower.includes('->0')) {
-            action = 'set_0';
-        } else if (effLower.includes('invers') || effLower.includes('invert') || effLower.includes('toggle')) {
-            action = 'invert';
-        } else if (effLower.includes('mentin') || effLower.includes('keep')) {
-            action = 'keep';
-        }
-
-        const effects = [];
-        const effRegex = /\[\s*(?:x\s*([+-]\s*\d+)?)?\s*,\s*(?:y\s*([+-]\s*\d+)?)?\s*\]/gi;
-        while ((match = effRegex.exec(effPart)) !== null) {
-            const dx = match[1] ? parseInt(match[1].replace(/\s+/g, ''), 10) : 0;
-            const dy = match[2] ? parseInt(match[2].replace(/\s+/g, ''), 10) : 0;
-            effects.push({ dx, dy, action });
-        }
-
-        if (effects.length === 0) {
-            effects.push({ dx: 0, dy: 0, action });
-        }
-
-        return {
-            name: `Regulă Text #${this.rules.length + 1}`,
-            description: text,
-            current_state: -1,
-            pattern_conditions: patternConds,
-            effects: effects,
-            enabled: true,
-        };
-    }
-
-    /**
-     * Randează lista de reguli active cu comutator ON/OFF și ștergere
-     */
     _renderRulesList() {
         if (!this.activeRulesList) return;
 
         const activeCount = this.rules.filter(r => r.enabled !== false).length;
         if (this.rulesCountBadge) {
-            this.rulesCountBadge.textContent = `${activeCount} active / ${this.rules.length} total`;
+            this.rulesCountBadge.textContent = `${activeCount} / ${this.rules.length}`;
         }
 
         if (this.rules.length === 0) {
-            this.activeRulesList.innerHTML = '<p class="placeholder">Nicio regulă definită. Se vor utiliza regulile implicite Conway B3/S23.</p>';
+            this.activeRulesList.innerHTML = '<p class="placeholder">Nicio regulă activă. Alegeți o presetare randomizată sau adăugați una mai sus.</p>';
             return;
         }
 
         let html = '';
         this.rules.forEach((rule, idx) => {
             const isEnabled = rule.enabled !== false;
-            let details = '';
-
-            if (rule.pattern_conditions && rule.pattern_conditions.length > 0) {
-                const condsStr = rule.pattern_conditions.map(c => {
-                    const sx = c.dx >= 0 ? `+${c.dx}` : c.dx;
-                    const sy = c.dy >= 0 ? `+${c.dy}` : c.dy;
-                    return `[x${sx}, y${sy}]=${c.state}`;
-                }).join(', ');
-                details += `<div><strong>Vecini:</strong> <code>${condsStr}</code></div>`;
-            }
-
-            if (rule.count_conditions && rule.count_conditions.length > 0) {
-                const cc = rule.count_conditions[0];
-                details += `<div><strong>Contor vecini:</strong> între ${cc.min_count} și ${cc.max_count}</div>`;
-            }
-
-            if (rule.effects && rule.effects.length > 0) {
-                const effStr = rule.effects.map(e => {
-                    const sx = e.dx >= 0 ? `+${e.dx}` : e.dx;
-                    const sy = e.dy >= 0 ? `+${e.dy}` : e.dy;
-                    const actName = {
-                        'set_1': 'devine 1 (aprins)',
-                        'set_0': 'devine 0 (stins)',
-                        'invert': 'invers (0 ↔ 1)',
-                        'keep': 'se menține',
-                    }[e.action] || e.action;
-                    return `[x${sx}, y${sy}] → ${actName}`;
-                }).join(', ');
-                details += `<div><strong>Efect:</strong> ${effStr}</div>`;
-            }
-
-            const defaultBadge = rule.is_default ? '<span class="badge-default-tag">Default</span>' : '';
-
             html += `
-                <div class="rule-card ${isEnabled ? '' : 'rule-disabled'} ${rule.is_default ? 'rule-card-default' : ''}">
+                <div class="rule-card ${isEnabled ? '' : 'rule-disabled'}">
                     <div class="rule-card-header">
-                        <label class="rule-toggle-label" title="Activează / Dezactivează această regulă">
+                        <label class="rule-toggle-label">
                             <input type="checkbox" class="rule-toggle-checkbox" data-idx="${idx}" ${isEnabled ? 'checked' : ''}>
-                            <span class="rule-title">${rule.name || `Regula ${idx + 1}`} ${defaultBadge}</span>
+                            <span class="rule-title">${rule.name || `Regula ${idx + 1}`}</span>
                         </label>
                         <button class="btn-delete-rule" data-idx="${idx}" title="Șterge regula">✕</button>
                     </div>
                     <div class="rule-card-body">
-                        ${rule.description ? `<div class="rule-desc">${rule.description}</div>` : ''}
-                        ${details}
+                        <code>${rule.description || ''}</code>
                     </div>
                 </div>
             `;
@@ -480,14 +266,13 @@ class RulesPanel {
 
         this.activeRulesList.innerHTML = html;
 
-        // Evenimente toggle activ/inactiv
+        // Evenimente toggle
         this.activeRulesList.querySelectorAll('.rule-toggle-checkbox').forEach(cb => {
             cb.addEventListener('change', (e) => {
                 const i = parseInt(e.target.dataset.idx, 10);
                 if (this.rules[i]) {
                     this.rules[i].enabled = e.target.checked;
-                    this._renderRulesList();
-                    this._applyRulesToServer();
+                    this._onRulesUpdated();
                 }
             });
         });
@@ -497,181 +282,253 @@ class RulesPanel {
             btn.addEventListener('click', (e) => {
                 const i = parseInt(e.currentTarget.dataset.idx, 10);
                 this.rules.splice(i, 1);
-                this._renderRulesList();
-                this._applyRulesToServer();
+                this._onRulesUpdated();
             });
         });
     }
 
-    /**
-     * Sincronizează regulile active cu backend-ul
-     */
-    async _applyRulesToServer(showFeedback = false) {
-        const boundary = this.ruleBoundary ? this.ruleBoundary.value : 'wrap';
-        try {
-            const res = await ApiClient.setRules(this.rules, boundary);
-            if (showFeedback) {
-                const count = this.rules.filter(r => r.enabled !== false).length;
-                this._showFeedback(`🚀 ${count} reguli sunt active pe simulator! Puteți rula (▶ Play / ⏭ Step).`, 'success');
-            }
-        } catch (err) {
-            if (showFeedback) {
-                this._showFeedback('Regulile sunt active local pe client.', 'success');
-            }
-        }
-    }
-
-    /**
-     * Încarcă setul de reguli implicite (Conway's Game of Life)
-     */
-    async _loadDefaultRules() {
-        this._loadPresetGoL(true);
-    }
-
-    /**
-     * Încărcare inițială
-     */
-    async _loadInitialRules() {
-        try {
-            const state = await ApiClient.getRules();
-            if (state && state.rules && state.rules.length > 0) {
-                this.rules = state.rules;
-                this._renderRulesList();
-                return;
-            }
-        } catch (e) {}
-
-        this._loadPresetGoL(false);
-    }
-
     // ==========================================
-    // Presetări Rapide
+    // PRESETĂRI RAPIDE RANDOMIZATE (1-Click)
     // ==========================================
-    _loadPresetGoL(feedback = true) {
+    _loadDefaultGoL(showFeedback = true) {
         this.rules = [
             {
                 name: 'GoL: Supraviețuire (2-3 vecini)',
-                description: 'O celulă vie [x,y]=1 cu 2 sau 3 vecini vii rămâne vie',
+                description: '[x,y]=1 : DACA 2..3 vecini vii ATUNCI [x,y] -> 1',
                 current_state: 1,
-                count_conditions: [{ state: 1, min_count: 2, max_count: 3, neighborhood: 'moore' }],
+                count_conditions: [{ state: 1, min_count: 2, max_count: 3 }],
                 effects: [{ dx: 0, dy: 0, action: 'set_1' }],
                 enabled: true,
-                is_default: true,
             },
             {
                 name: 'GoL: Naștere (exact 3 vecini)',
-                description: 'O celulă moartă [x,y]=0 cu exact 3 vecini devine vie',
+                description: '[x,y]=0 : DACA exact 3 vecini vii ATUNCI [x,y] -> 1',
                 current_state: 0,
-                count_conditions: [{ state: 1, min_count: 3, max_count: 3, neighborhood: 'moore' }],
+                count_conditions: [{ state: 1, min_count: 3, max_count: 3 }],
                 effects: [{ dx: 0, dy: 0, action: 'set_1' }],
                 enabled: true,
-                is_default: true,
             },
             {
                 name: 'GoL: Subpopulare (<2 vecini)',
-                description: 'O celulă vie [x,y]=1 cu 0 sau 1 vecin moare',
+                description: '[x,y]=1 : DACA <2 vecini vii ATUNCI [x,y] -> 0',
                 current_state: 1,
-                count_conditions: [{ state: 1, min_count: 0, max_count: 1, neighborhood: 'moore' }],
+                count_conditions: [{ state: 1, min_count: 0, max_count: 1 }],
                 effects: [{ dx: 0, dy: 0, action: 'set_0' }],
                 enabled: true,
-                is_default: true,
             },
             {
                 name: 'GoL: Suprapopulare (>3 vecini)',
-                description: 'O celulă vie [x,y]=1 cu 4 sau mai mulți vecini moare',
+                description: '[x,y]=1 : DACA >3 vecini vii ATUNCI [x,y] -> 0',
                 current_state: 1,
-                count_conditions: [{ state: 1, min_count: 4, max_count: 8, neighborhood: 'moore' }],
+                count_conditions: [{ state: 1, min_count: 4, max_count: 8 }],
                 effects: [{ dx: 0, dy: 0, action: 'set_0' }],
                 enabled: true,
-                is_default: true,
             },
         ];
-        this._renderRulesList();
-        this._applyRulesToServer();
-        if (feedback) {
-            this._showFeedback('⭐ S-au încărcat regulile Default (Conway\'s Game of Life B3/S23)!', 'success');
+        this._onRulesUpdated();
+        if (showFeedback) {
+            this._showFeedback('⭐ Reguli Default Conway Game of Life încărcate!', 'success');
         }
     }
 
-    _loadPresetInverter() {
+    /**
+     * Preset 1: Conway Game of Life Randomizat (populează o supă celulară + planoare)
+     */
+    presetGolRandom() {
+        this._loadDefaultGoL(false);
+        if (window.controls) {
+            window.controls.pause();
+            const grid = window.controls.grid;
+            grid.clear();
+
+            // Supă celulară centrală
+            grid.randomize(60, 0.3);
+
+            // Adăugăm 3 planoare (gliders) care zboară spre exterior
+            const addGlider = (gx, gy) => {
+                const gCoords = [[1, 0], [2, 1], [0, 2], [1, 2], [2, 2]];
+                gCoords.forEach(([dx, dy]) => grid.setCell(gx + dx, gy + dy, 1));
+            };
+            addGlider(-40, -40);
+            addGlider(35, -35);
+            addGlider(-35, 35);
+
+            grid.fitAll();
+            window.controls.reset();
+        }
+        this._showFeedback('🧬 Preset Conway Game of Life + Supă Randomizată încărcată!', 'success');
+    }
+
+    /**
+     * Preset 2: Inversor Orizontal Randomizat
+     */
+    presetInvertRandom() {
         this.rules = [
             {
-                name: 'Inversor Orizontal [x, y]',
-                description: 'Dacă vecinii [x-1,y]=1 și [x+1,y]=1 ➔ inversează [x,y] și stinge vecinii',
+                name: 'Inversor Orizontal [x,y]',
+                description: '[x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> invers, [x+1,y] -> 0',
                 current_state: -1,
                 pattern_conditions: [
                     { dx: -1, dy: 0, state: 1 },
-                    { dx: 1, dy: 0, state: 1 },
+                    { dx: 1, dy: 0, state: 1 }
                 ],
                 effects: [
                     { dx: 0, dy: 0, action: 'invert' },
-                    { dx: -1, dy: 0, action: 'set_0' },
-                    { dx: 1, dy: 0, action: 'set_0' },
+                    { dx: 1, dy: 0, action: 'set_0' }
                 ],
                 enabled: true,
             },
             {
-                name: 'Inversor Vertical [x, y]',
-                description: 'Dacă vecinii [x,y-1]=1 și [x,y+1]=1 ➔ inversează [x,y]',
+                name: 'Pulsar Vertical [x,y]',
+                description: '[x,y] : DACA [x,y-1]=1, [x,y+1]=1 ATUNCI [x,y] -> invers',
                 current_state: -1,
                 pattern_conditions: [
                     { dx: 0, dy: -1, state: 1 },
-                    { dx: 0, dy: 1, state: 1 },
+                    { dx: 0, dy: 1, state: 1 }
                 ],
                 effects: [
-                    { dx: 0, dy: 0, action: 'invert' },
+                    { dx: 0, dy: 0, action: 'invert' }
                 ],
                 enabled: true,
-            },
+            }
         ];
-        this._renderRulesList();
-        this._applyRulesToServer();
-        this._showFeedback('🔄 S-a încărcat presetarea: Inversor [x, y] cu câmpuri multiple!', 'success');
+        this._onRulesUpdated();
+
+        if (window.controls) {
+            window.controls.pause();
+            const grid = window.controls.grid;
+            grid.clear();
+
+            // Generăm linii și perechi orizontale randomizate
+            for (let i = 0; i < 70; i++) {
+                const rx = Math.floor((Math.random() - 0.5) * 80);
+                const ry = Math.floor((Math.random() - 0.5) * 80);
+                grid.setCell(rx - 1, ry, 1);
+                grid.setCell(rx + 1, ry, 1);
+                if (Math.random() < 0.4) grid.setCell(rx, ry, 1);
+            }
+
+            grid.fitAll();
+            window.controls.reset();
+        }
+        this._showFeedback('🔄 Preset Inversor Orizontal [x,y] + Linii Randomizate încărcat!', 'success');
     }
 
-    _loadPresetSeeds() {
+    /**
+     * Preset 3: Val de Propagare Dreapta Randomizat
+     */
+    presetWaveRandom() {
+        this.rules = [
+            {
+                name: 'Val de Propagare Dreapta',
+                description: '[x,y] : DACA [x-1,y]=1 ATUNCI [x,y] -> 1, [x-1,y] -> 0',
+                current_state: -1,
+                pattern_conditions: [{ dx: -1, dy: 0, state: 1 }],
+                effects: [
+                    { dx: 0, dy: 0, action: 'set_1' },
+                    { dx: -1, dy: 0, action: 'set_0' }
+                ],
+                enabled: true,
+            }
+        ];
+        this._onRulesUpdated();
+
+        if (window.controls) {
+            window.controls.pause();
+            const grid = window.controls.grid;
+            grid.clear();
+
+            // Generăm bariere verticale stânga de unde pornesc valurile
+            for (let y = -40; y <= 40; y++) {
+                if (Math.random() < 0.7) {
+                    grid.setCell(-30, y, 1);
+                }
+                if (Math.random() < 0.5) {
+                    grid.setCell(-10, y, 1);
+                }
+            }
+
+            grid.fitAll();
+            window.controls.reset();
+        }
+        this._showFeedback('🌊 Preset Val Propagare Dreapta + Bariere Randomizate încărcat!', 'success');
+    }
+
+    /**
+     * Preset 4: Seeds B2/S Randomizat
+     */
+    presetSeedsRandom() {
         this.rules = [
             {
                 name: 'Seeds: Naștere (exact 2 vecini)',
-                description: 'O celulă moartă devine vie dacă are exact 2 vecini vii',
+                description: '[x,y]=0 : DACA exact 2 vecini vii ATUNCI [x,y] -> 1',
                 current_state: 0,
-                count_conditions: [{ state: 1, min_count: 2, max_count: 2, neighborhood: 'moore' }],
+                count_conditions: [{ state: 1, min_count: 2, max_count: 2 }],
                 effects: [{ dx: 0, dy: 0, action: 'set_1' }],
                 enabled: true,
             },
             {
-                name: 'Seeds: Moarte imediată',
-                description: 'Toate celulele vii mor la pasul următor',
+                name: 'Seeds: Moarte Imediată',
+                description: '[x,y]=1 : DACA 0..8 vecini ATUNCI [x,y] -> 0',
                 current_state: 1,
-                count_conditions: [{ state: 1, min_count: 0, max_count: 8, neighborhood: 'moore' }],
+                count_conditions: [{ state: 1, min_count: 0, max_count: 8 }],
                 effects: [{ dx: 0, dy: 0, action: 'set_0' }],
                 enabled: true,
-            },
+            }
         ];
-        this._renderRulesList();
-        this._applyRulesToServer();
-        this._showFeedback('🌱 S-a încărcat presetarea: Seeds (B2/S)!', 'success');
+        this._onRulesUpdated();
+
+        if (window.controls) {
+            window.controls.pause();
+            const grid = window.controls.grid;
+            grid.clear();
+
+            // Generăm clustere mici de semințe disperse
+            for (let k = 0; k < 30; k++) {
+                const cx = Math.floor((Math.random() - 0.5) * 70);
+                const cy = Math.floor((Math.random() - 0.5) * 70);
+                grid.setCell(cx, cy, 1);
+                grid.setCell(cx + 1, cy, 1);
+                grid.setCell(cx, cy + 1, 1);
+            }
+
+            grid.fitAll();
+            window.controls.reset();
+        }
+        this._showFeedback('🌱 Preset Seeds (B2/S) + Semințe Randomizate încărcat!', 'success');
     }
 
-    _loadPresetWave() {
+    /**
+     * Preset 5: Haos Multi-Câmp Randomizat
+     */
+    presetChaosRandom() {
         this.rules = [
             {
-                name: 'Val Propagare Dreapta',
-                description: 'Dacă vecinul din stânga [x-1,y]=1 ➔ aprinde [x,y] și stinge [x-1,y]',
+                name: 'Haos Simultan Multi-Câmp',
+                description: '[x,y] : DACA [x,y-1]=1, [x+1,y]=1 ATUNCI [x,y] -> invers, [x-1,y] -> 1',
                 current_state: -1,
                 pattern_conditions: [
-                    { dx: -1, dy: 0, state: 1 },
+                    { dx: 0, dy: -1, state: 1 },
+                    { dx: 1, dy: 0, state: 1 }
                 ],
                 effects: [
-                    { dx: 0, dy: 0, action: 'set_1' },
-                    { dx: -1, dy: 0, action: 'set_0' },
+                    { dx: 0, dy: 0, action: 'invert' },
+                    { dx: -1, dy: 0, action: 'set_1' }
                 ],
                 enabled: true,
-            },
+            }
         ];
-        this._renderRulesList();
-        this._applyRulesToServer();
-        this._showFeedback('🌊 S-a încărcat presetarea: Val Propagare Dreapta!', 'success');
+        this._onRulesUpdated();
+
+        if (window.controls) {
+            window.controls.pause();
+            const grid = window.controls.grid;
+            grid.clear();
+            grid.randomize(45, 0.25);
+            grid.fitAll();
+            window.controls.reset();
+        }
+        this._showFeedback('💥 Preset Haos Multi-Câmp + Constelație Randomizată încărcat!', 'success');
     }
 
     _showFeedback(msg, type = 'success') {
@@ -681,9 +538,7 @@ class RulesPanel {
         this.ruleFeedback.classList.remove('hidden');
 
         setTimeout(() => {
-            if (this.ruleFeedback) {
-                this.ruleFeedback.classList.add('hidden');
-            }
-        }, 5000);
+            if (this.ruleFeedback) this.ruleFeedback.classList.add('hidden');
+        }, 4000);
     }
 }

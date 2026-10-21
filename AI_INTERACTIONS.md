@@ -434,3 +434,69 @@ Semnalare că butoanele nu funcționează și că sistemul de reguli nu este uș
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 14)
 
 ---
+
+### [2026-10-21 / Pasul 15] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Cerere pentru:
+1. Extinderea suprafeței celulelor spre infinit (sau cel puțin foarte mare) cu suport zoom in/out pe o anumită zonă și navigare pan.
+2. Refacerea meniului de setări pentru a fi mai simplu, concis și intuitiv, rezolvând complet problema butoanelor nefuncționale.
+3. Permiterea clară a: 
+   - 1. Rulare
+   - 2. Introducere de reguli după un format prestabilit
+   - 3. Presetări rapide randomizate
+   - 4. Grid bazat pe Hashmap care reține stările calculate anterior pentru căutare facilă în O(1).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Spațiu Celular Infinit & Viewport Interactiv (`ui/static/js/grid.js`):**
+   - Grid-ul a fost transformat dintr-o matrice finită fixă 50×50 într-un **spațiu celular infinit** bazat pe Hashmap (`Map<"x,y", state>`), stocând exclusiv celulele vii. Coordonatele pot fi oricât de mari în orice direcție $(-\infty, +\infty)$, cu consum de memorie strict $O(\text{celule vii})$.
+   - **Zoom fluid (5% – 5000%):** Rotița mouse-ului mărește/micșorează centrat direct pe poziția cursorului. Butoane dedicate `🔍+` și `🔍-`.
+   - **Navigare Pan:** Deplasare pe suprafața infinită prin drag cu click dreapta, click mijloc sau folosind unealta `✋ Pan`.
+   - **Funcții de încadrare:** `🎯 Fit All` (calculează bounding box-ul tuturor celulelor vii și adaptează automat zoom-ul și camera) și `⌂ Centru` (revine la originea 0,0).
+   - **Randare virtualizată:** Pe ecran se desenează strict celulele care cad în perimetrul vizibil al camerei, asigurând fluiditate la 60 FPS.
+
+2. **Hashmap Memoization Cache (`ui/static/js/controls.js`):**
+   - Implementat mecanismul cerut de reținere a stărilor calculate anterior: fiecare secțiune locală de vecinătate este serializată într-un hash binar compact de 9 biți.
+   - La fiecare iterație, simulatorul verifică mai întâi `hashmapCache.has(hash)`:
+     - Dacă starea a fost calculată anterior (oscilatori, structuri stabile, spațiu vid): rezultatul generației viitoare este extras direct în **O(1)** fără recalculare.
+     - Dacă starea este nouă: se evaluează regulile și rezultatul se salvează în Hashmap pentru refolosire viitoare.
+   - HUD-ul afișează în timp real: `Hashmap: N stări (X% hit rate)`.
+
+3. **Format Prestabilit de Reguli & Format Simplificat (`ui/static/js/rules_panel.js`):**
+   - Definit și integrat formatul prestabilit intuitiv:
+     `[x,y] : DACA [x+dx,y+dy]=stare, ... ATUNCI [x+dx,y+dy] -> actiune`
+   - Exemple și șabloane rapide 1-click integrate:
+     - `[x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> 1`
+     - `[x,y] : DACA [x,y-1]=1, [x,y+1]=1 ATUNCI [x,y] -> invers`
+     - `[x,y] : DACA [x-1,y]=1 ATUNCI [x,y] -> 1, [x-1,y] -> 0`
+   - Mini-asistent de configurare din două dropdown-uri simple (condiție + acțiune) cu adăugare imediată.
+
+4. **Presetări Rapide Randomizate (1-Click):**
+   - `🧬 Conway's Game of Life (Randomizat)` — încarcă B3/S23 + supă celulară de 60×60 și planoare (Gliders).
+   - `🔄 Inversor Orizontal [x,y] (Randomizat)` — încarcă regula de inversare + linii orizontale aleatorii.
+   - `🌊 Val Propagare Dreapta (Randomizat)` — încarcă propagarea undelor + bariere verticale aleatorii.
+   - `🌱 Seeds B2/S (Randomizat)` — încarcă regula Seeds + clustere de semințe dispersate.
+   - `💥 Haos Multi-Câmp (Randomizat)` — transformări simultane + constelație densă.
+
+5. **Rezolvare Definitivă Problemă Butoane & Căi Fișiere (`ui/app.py`, `ui/static/index.html`):**
+   - **Cauza:** Căile absolute `/static/...` cauzau erori 404 când aplicația era deschisă direct prin protocolul `file:///` sau în anumite browsere.
+   - **Rezolvare:** S-au utilizat căi relative (`css/style.css`, `js/...`), iar în `ui/app.py` s-au montat directoarele `/css` și `/js` atât la rădăcină, cât și la `/static`, garantând încărcarea instantanee și fără erori indiferent de modalitatea de deschidere (localhost sau fișier local).
+
+6. **Validare & Testare:**
+   - Suita de teste pytest: 18 teste trecute cu succes.
+   - Verificare sintaxă JavaScript cu `node -c`: 0 erori.
+   - Verificat răspunsul serverului HTTP pentru pagină și fișiere statice: cod 200.
+
+**Fișiere create/modificate:**
+- `ui/static/js/grid.js` (InfiniteGridRenderer pe bază de Hashmap, zoom mouse-wheel, pan, fit-all)
+- `ui/static/js/controls.js` (motor de simulare infinit cu Hashmap Memoization Cache O(1) și HUD)
+- `ui/static/js/rules_panel.js` (format prestabilit de reguli, 5 presetări rapide randomizate)
+- `ui/static/index.html` (interfață nouă, curată, concisă, bară unelte de zoom și HUD integrat)
+- `ui/static/css/style.css` (stiluri noi compacte dark-theme, status pills, layout fluid flexibil)
+- `ui/static/js/main.js` (inițializare automată cu preset randomizat la deschidere)
+- `ui/app.py` (montare compatibilă căi statice)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 15)
+
+---

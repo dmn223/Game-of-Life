@@ -3,253 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CelLab — Simulator Automate Celulare</title>
+    <title>CelLab — Simulator Automate Celulare pe Spațiu Infinit</title>
+    <!-- Căi relative sigure pentru compatibilitate completă: localhost și file:// -->
+    <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <header>
-        <h1 class="title">🧬 CelLab</h1>
-        <p class="subtitle">Sistem pentru Descrierea, Validarea și Simularea Automatelor Celulare 2D</p>
+    <header class="app-header">
+        <div class="header-content">
+            <h1 class="title">🧬 CelLab</h1>
+            <span class="header-tag">Spațiu Infinit & Hashmap Cache</span>
+        </div>
+        <div class="quick-status">
+            <span id="hud-coords" class="status-pill">Centru: (0, 0)</span>
+            <span id="hud-zoom" class="status-pill">Zoom: 100%</span>
+            <span id="cache-stats" class="status-pill highlight">Hashmap: 0 stări (0% hit)</span>
+        </div>
     </header>
 
-    <main>
-        <!-- Grid Canvas & Status -->
-        <section class="grid-section">
-            <canvas id="grid-canvas"></canvas>
-            <div class="grid-info">
-                <span id="generation-counter">Generația: 0</span>
-                <span id="cell-count">Celule active: 0</span>
-                <span id="grid-size">Grid: 50×50</span>
-                <span id="status-indicator" class="status-badge connected">● Conectat</span>
-            </div>
-            <div class="canvas-hint">
-                💡 <em>Click sau drag pe grid pentru a desena/șterge celule (1 = verde aprins, 0 = fundal închis). Apăsați <strong>🎲 Random</strong> apoi <strong>▶ Play</strong> pentru a vedea evoluția!</em>
-            </div>
-        </section>
-
-        <!-- Sidebar Controale & Reguli -->
-        <aside class="sidebar">
-            <!-- 1. Controale simulare principale -->
-            <div class="panel controls-panel">
-                <h3>Controale Simulare</h3>
-                <div class="btn-group main-controls">
-                    <button id="btn-play" class="btn-primary" title="Pornește simularea">▶ Play</button>
-                    <button id="btn-pause" class="btn-secondary" title="Pune pauză" disabled>⏸ Pause</button>
-                    <button id="btn-step" class="btn-step" title="Avansează o singură generație">⏭ Step</button>
-                    <button id="btn-reset" title="Resetează generația la 0">⏹ Reset</button>
+    <main class="app-layout">
+        <!-- Secțiunea Principală: Canvas Infinit cu Zoom & Pan -->
+        <section class="canvas-section">
+            <!-- Bara superioară de control simulare (1. Rulare) -->
+            <div class="canvas-controls-bar">
+                <div class="btn-group-primary">
+                    <button id="btn-play" class="btn-ctrl btn-play" title="Pornește simularea continuă (Spațiu)">▶ Play</button>
+                    <button id="btn-pause" class="btn-ctrl btn-pause" title="Oprește simularea (Pauză)" disabled>⏸ Pause</button>
+                    <button id="btn-step" class="btn-ctrl btn-step" title="Un singur pas de simulare (Tasta S)">⏭ Step</button>
+                    <button id="btn-reset" class="btn-ctrl" title="Resetează generația la 0">⏹ Reset</button>
+                    <button id="btn-random" class="btn-ctrl btn-random" title="Populare aleatorie (Tasta R)">🎲 Random</button>
+                    <button id="btn-clear" class="btn-ctrl btn-clear" title="Curăță tot ecranul (Tasta C)">🗑️ Clear</button>
                 </div>
-                <div class="speed-control">
+
+                <div class="speed-box">
                     <label for="speed-slider">Viteză:</label>
                     <input type="range" id="speed-slider" min="1" max="60" value="10">
                     <span id="speed-value">10 gen/s</span>
                 </div>
-                <div class="btn-group">
-                    <button id="btn-random" class="btn-highlight" title="Populare aleatorie a gridului">🎲 Random</button>
-                    <button id="btn-clear" title="Șterge tot gridul">🗑️ Clear</button>
+
+                <div class="viewport-tools">
+                    <button id="btn-tool-draw" class="btn-tool active" title="Mod Desenare (Click stânga desenează)">✏️ Draw</button>
+                    <button id="btn-tool-pan" class="btn-tool" title="Mod Navigare (Click stânga trage harta)">✋ Pan</button>
+                    <button id="btn-zoom-in" class="btn-tool" title="Mărește (Zoom In)">🔍+</button>
+                    <button id="btn-zoom-out" class="btn-tool" title="Micșorează (Zoom Out)">🔍−</button>
+                    <button id="btn-fit-all" class="btn-tool" title="Încadrează toate celulele pe ecran (Tasta F)">🎯 Fit All</button>
+                    <button id="btn-reset-view" class="btn-tool" title="Resetează vederea la origine (0,0)">⌂ Centru</button>
                 </div>
             </div>
 
-            <!-- 2. Reguli Limbaj Natural & Editor Intuitiv -->
-            <div class="panel rules-panel">
-                <h3>Reguli (Limbaj Natural)</h3>
+            <!-- Canvas Container -->
+            <div class="canvas-wrapper">
+                <canvas id="grid-canvas"></canvas>
 
-                <!-- Sub-label explicativ cerut -->
-                <div class="sub-label-header">
-                    <span class="badge-tag">Reguli Personalizate [x, y]</span>
-                    <p class="section-desc">
-                        Definiți reguli relative raportate la câmpul curent <code>[x, y]</code> și vecinii săi <code>[[x+dx, y+dy], ...]</code>.
-                        Dacă o celulă poate utiliza mai multe reguli, <strong>toate vor avea loc simultan</strong>.
-                    </p>
-                </div>
-
-                <!-- Tabs: Asistent Vizual vs Mod Text -->
-                <div class="tabs-header">
-                    <button id="tab-btn-visual" class="tab-btn active">🧩 Asistent Vizual 3×3</button>
-                    <button id="tab-btn-text" class="tab-btn">✍️ Mod Text / Șabloane</button>
-                </div>
-
-                <!-- Mod 1: Constructor Vizual Intuitiv 3x3 -->
-                <div id="tab-content-visual" class="tab-content active">
-                    <!-- Starea celulei curente [x, y] -->
-                    <div class="rule-field">
-                        <label class="field-label">1. Starea celulei curente <code>[x, y]</code>:</label>
-                        <div class="state-selector-row">
-                            <button type="button" class="btn-state-pill active" data-state="-1">⚪ Oricare (*)</button>
-                            <button type="button" class="btn-state-pill" data-state="1">🟢 Vie (1)</button>
-                            <button type="button" class="btn-state-pill" data-state="0">🔴 Moartă (0)</button>
-                        </div>
+                <!-- HUD Info Bar pe Canvas -->
+                <div class="canvas-hud">
+                    <div class="hud-left">
+                        <span id="generation-counter" class="hud-item bold">Gen: 0</span>
+                        <span id="cell-count" class="hud-item bold green">Vii: 0</span>
                     </div>
-
-                    <!-- Vecini 3x3 în jurul lui [x, y] -->
-                    <div class="rule-field">
-                        <label class="field-label">2. Condiție vecini <code>[x+dx, y+dy]</code>:</label>
-                        <p class="mini-hint">Click pe căsuțe pentru a alege: ⬜ Oricare | 🟢 Trebuie 1 | 🔴 Trebuie 0</p>
-                        
-                        <!-- Butoane rapide vecini -->
-                        <div class="quick-neighbor-bar">
-                            <button type="button" id="btn-nb-any" class="btn-chip" title="Resetează toți vecinii pe 'oricare'">Resetează toți</button>
-                            <button type="button" id="btn-nb-horiz" class="btn-chip" title="Setează vecinii stânga și dreapta pe 1">Orizontal</button>
-                            <button type="button" id="btn-nb-vert" class="btn-chip" title="Setează vecinii sus și jos pe 1">Vertical</button>
-                            <button type="button" id="btn-nb-cross" class="btn-chip" title="Cruce (+)">Cruce (+)</button>
-                        </div>
-
-                        <!-- Grilă 3x3 curată și spațioasă -->
-                        <div class="pattern-grid-3x3">
-                            <!-- Rând 1: Sus -->
-                            <div class="nb-cell" data-dx="-1" data-dy="-1" title="Sus-Stânga [x-1, y-1]">
-                                <span class="nb-coord">[x-1, y-1]</span>
-                                <span class="nb-status">Oricare</span>
-                            </div>
-                            <div class="nb-cell" data-dx="0" data-dy="-1" title="Sus [x, y-1]">
-                                <span class="nb-coord">Sus [x, y-1]</span>
-                                <span class="nb-status">Oricare</span>
-                            </div>
-                            <div class="nb-cell" data-dx="1" data-dy="-1" title="Sus-Dreapta [x+1, y-1]">
-                                <span class="nb-coord">[x+1, y-1]</span>
-                                <span class="nb-status">Oricare</span>
-                            </div>
-
-                            <!-- Rând 2: Mijloc -->
-                            <div class="nb-cell" data-dx="-1" data-dy="0" title="Stânga [x-1, y]">
-                                <span class="nb-coord">Stânga [x-1, y]</span>
-                                <span class="nb-status">Oricare</span>
-                            </div>
-                            <div class="nb-center-cell" title="Celula curentă [x, y]">
-                                <strong>[x, y]</strong>
-                                <small id="center-cell-label">Oricare</small>
-                            </div>
-                            <div class="nb-cell" data-dx="1" data-dy="0" title="Dreapta [x+1, y]">
-                                <span class="nb-coord">Dreapta [x+1, y]</span>
-                                <span class="nb-status">Oricare</span>
-                            </div>
-
-                            <!-- Rând 3: Jos -->
-                            <div class="nb-cell" data-dx="-1" data-dy="1" title="Jos-Stânga [x-1, y+1]">
-                                <span class="nb-coord">[x-1, y+1]</span>
-                                <span class="nb-status">Oricare</span>
-                            </div>
-                            <div class="nb-cell" data-dx="0" data-dy="1" title="Jos [x, y+1]">
-                                <span class="nb-coord">Jos [x, y+1]</span>
-                                <span class="nb-status">Oricare</span>
-                            </div>
-                            <div class="nb-cell" data-dx="1" data-dy="1" title="Jos-Dreapta [x+1, y+1]">
-                                <span class="nb-coord">[x+1, y+1]</span>
-                                <span class="nb-status">Oricare</span>
-                            </div>
-                        </div>
+                    <div class="hud-center">
+                        <span class="hud-hint">💡 Rotiță mouse: <strong>Zoom</strong> | Click dreapta sau Shift+drag: <strong>Navigare</strong> | Click stânga: <strong>Desenează</strong></span>
                     </div>
-
-                    <!-- Acțiune & Câmpuri țintă -->
-                    <div class="rule-field">
-                        <label class="field-label">3. Ce se întâmplă când condiția este îndeplinită?</label>
-                        <div class="target-field-row">
-                            <select id="visual-target-field" title="Alegeți câmpul afectat">
-                                <option value="0,0" selected>🎯 Câmpul curent [x, y]</option>
-                                <option value="1,0">➡️ [x+1, y] (dreapta)</option>
-                                <option value="-1,0">⬅️ [x-1, y] (stânga)</option>
-                                <option value="0,-1">⬆️ [x, y-1] (sus)</option>
-                                <option value="0,1">⬇️ [x, y+1] (jos)</option>
-                                <option value="multi_inverter">✨ [x, y] + vecinii [x-1,y] și [x+1,y]</option>
-                            </select>
-                            <select id="visual-action" title="Alegeți transformarea">
-                                <option value="set_1" selected>🟢 Devine 1 (se aprinde)</option>
-                                <option value="set_0">🔴 Devine 0 (se stinge)</option>
-                                <option value="invert">🔄 Se inversează (0 ↔ 1)</option>
-                                <option value="keep">⏸ Se menține</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <button id="btn-add-visual-rule" class="btn-accent">➕ Adaugă Regula în Simulator</button>
                 </div>
+            </div>
+        </section>
 
-                <!-- Mod 2: Introducere directă text cu șabloane rapide -->
-                <div id="tab-content-text" class="tab-content">
-                    <label class="field-label">Alegeți un șablon rapid cu 1-click:</label>
-                    <div class="template-chips">
-                        <button type="button" class="btn-chip btn-template" data-template="pentru campul curent [x,y], daca am vecinii [[x+1,y], [x-1,y]] sa aiba loc urmatoarele stari: campurile [x,y] se transforma din 0 in 1">
-                            💡 Vecinii orizontali aprind [x,y]
+        <!-- Sidebar Concis și Intuitiv -->
+        <aside class="sidebar-concise">
+            <!-- 1. PRESETĂRI RAPIDE RANDOMIZATE (Cerința 3) -->
+            <div class="panel-box">
+                <h3 class="panel-title">⚡ 1. Presetări Rapide Randomizate</h3>
+                <p class="panel-desc">Încarcă instant regula și generează o structură aleatorie centrată:</p>
+                <div class="presets-vertical">
+                    <button id="btn-preset-gol-random" class="btn-preset-card">
+                        <div class="preset-name">🧬 Conway's Game of Life</div>
+                        <div class="preset-sub">B3/S23 + Supă celulară & planoare (Gliders)</div>
+                    </button>
+                    <button id="btn-preset-invert-random" class="btn-preset-card">
+                        <div class="preset-name">🔄 Inversor Orizontal [x, y]</div>
+                        <div class="preset-sub">Vecinii orizontali inversează celula + Linii randomizate</div>
+                    </button>
+                    <button id="btn-preset-wave-random" class="btn-preset-card">
+                        <div class="preset-name">🌊 Val Propagare Dreapta</div>
+                        <div class="preset-sub">Propagare continuă spre dreapta + Coloane barieră</div>
+                    </button>
+                    <button id="btn-preset-seeds-random" class="btn-preset-card">
+                        <div class="preset-name">🌱 Seeds (B2/S)</div>
+                        <div class="preset-sub">Exact 2 vecini = viață + Semințe dispersate</div>
+                    </button>
+                    <button id="btn-preset-chaos-random" class="btn-preset-card">
+                        <div class="preset-name">💥 Haos Multi-Câmp</div>
+                        <div class="preset-sub">Transformări simultane multi-țintă + Constelație densă</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. INTRODUCERE REGULI DUPĂ FORMAT PRESTABILIT (Cerința 2) -->
+            <div class="panel-box">
+                <h3 class="panel-title">✍️ 2. Introducere Reguli (Format Prestabilit)</h3>
+                
+                <div class="format-help-card">
+                    <div class="format-syntax">
+                        <code>[x,y] : DACA vecini ATUNCI actiune</code>
+                    </div>
+                    <div class="format-chips-label">Șabloane rapide 1-click:</div>
+                    <div class="chips-container">
+                        <button type="button" class="btn-format-chip" data-rule="[x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> 1">
+                            Orizontal ➔ Aprinde [x,y]
                         </button>
-                        <button type="button" class="btn-chip btn-template" data-template="pentru campul curent [x,y], daca am vecinii [[x,y-1]=1, [x,y+1]=1] sa aiba loc urmatoarele stari: campurile [x,y] se inverseaza">
-                            💡 Vecinii verticali inversează [x,y]
+                        <button type="button" class="btn-format-chip" data-rule="[x,y] : DACA [x,y-1]=1, [x,y+1]=1 ATUNCI [x,y] -> invers">
+                            Vertical ➔ Inversează [x,y]
                         </button>
-                        <button type="button" class="btn-chip btn-template" data-template="pentru campul curent [x,y]=1, daca am vecinii [[x+1,y]=0, [x-1,y]=0] sa aiba loc: campurile [x,y] se transforma din 1 in 0">
-                            💡 Stingere dacă stânga și dreapta sunt 0
+                        <button type="button" class="btn-format-chip" data-rule="[x,y] : DACA [x-1,y]=1 ATUNCI [x,y] -> 1, [x-1,y] -> 0">
+                            Val Dreapta: [x,y] 1, [x-1,y] 0
                         </button>
-                        <button type="button" class="btn-chip btn-template" data-template="pentru campul curent [x,y], daca am vecinii [[x+1,y]=1, [x-1,y]=1] sa aiba loc urmatoarele stari: campurile [x,y] se transforma in 1, [x+1,y] se transforma din 1 in 0">
-                            💡 Multi-câmp: aprinde [x,y] și stinge [x+1,y]
+                        <button type="button" class="btn-format-chip" data-rule="[x,y]=1 : DACA [x-1,y]=0, [x+1,y]=0 ATUNCI [x,y] -> 0">
+                            Izolat ➔ Stinge [x,y]
                         </button>
                     </div>
-
-                    <label for="custom-rule-text" class="field-label" style="margin-top: 0.5rem;">Sau scrieți textul regulii:</label>
-                    <textarea
-                        id="custom-rule-text"
-                        placeholder="Exemplu:&#10;pentru campul curent [x,y], daca am vecinii [[x+1,y], [x-1,y]] sa aiba loc urmatoarele stari: campurile [x,y] se transforma din 0 in 1"
-                        rows="4"
-                    ></textarea>
-
-                    <button id="btn-parse-add-rule" class="btn-accent">➕ Parsează & Adaugă Regula</button>
                 </div>
 
-                <!-- Feedback mesaje -->
-                <div id="rule-feedback" class="feedback hidden"></div>
-
-                <!-- Lista Regulilor Active -->
-                <div class="active-rules-header">
-                    <h4>📋 Reguli Active (<span id="rules-count-badge">0</span>)</h4>
-                    <div class="rules-header-actions">
-                        <button id="btn-clear-rules" class="btn-tiny" title="Șterge toate regulile">Șterge tot</button>
-                    </div>
+                <!-- Câmp introducere text în format prestabilit -->
+                <div class="input-row">
+                    <input
+                        type="text"
+                        id="rule-format-input"
+                        placeholder="Ex: [x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> 1"
+                    >
+                    <button id="btn-add-format-rule" class="btn-action">➕ Adaugă</button>
                 </div>
-                <div id="active-rules-list" class="active-rules-list">
+
+                <!-- Mini Asistent Rapid Dropdown -->
+                <div class="quick-builder-row">
+                    <span class="qb-label">Sau rapid:</span>
+                    <select id="quick-cond-select">
+                        <option value="horiz">Vecini [x-1,y] și [x+1,y] = 1</option>
+                        <option value="vert">Vecini [x,y-1] și [x,y+1] = 1</option>
+                        <option value="cross">Cruce (+) toți 4 vecini = 1</option>
+                        <option value="left">Vecin stânga [x-1,y] = 1</option>
+                    </select>
+                    <select id="quick-action-select">
+                        <option value="set_1">➔ Devine 1</option>
+                        <option value="set_0">➔ Devine 0</option>
+                        <option value="invert">➔ Inversează</option>
+                    </select>
+                    <button id="btn-build-quick-rule" class="btn-tiny-action" title="Adaugă regula selectată">➕</button>
+                </div>
+
+                <!-- Feedback mesaj -->
+                <div id="rule-feedback" class="feedback-msg hidden"></div>
+            </div>
+
+            <!-- 3. LISTA REGULILOR ACTIVE -->
+            <div class="panel-box">
+                <div class="panel-header-row">
+                    <h3 class="panel-title">📋 3. Reguli Active (<span id="rules-count-badge">0</span>)</h3>
+                    <button id="btn-clear-rules" class="btn-tiny-clear" title="Șterge toate regulile">Șterge tot</button>
+                </div>
+                <div id="active-rules-list" class="active-rules-container">
                     <p class="placeholder">Nicio regulă activă.</p>
                 </div>
-
-                <!-- Presetări Rapide Gata de Rulare -->
-                <div class="presets-section">
-                    <h4>⚡ Presetări Rapide cu 1-Click</h4>
-                    <div class="btn-group presets-grid">
-                        <button id="btn-reset-default" class="btn-preset btn-preset-highlight" title="Reîncarcă setul de reguli implicite (Conway's Game of Life B3/S23)">⭐ Reguli Default (GoL)</button>
-                        <button id="btn-preset-inverter" class="btn-preset" title="Regulă relativă: vecinii [x+1,y] și [x-1,y] inversează [x,y]">🔄 Inversor [x, y]</button>
-                        <button id="btn-preset-seeds" class="btn-preset" title="Seeds (B2/S)">🌱 Seeds</button>
-                        <button id="btn-preset-wave" class="btn-preset" title="Val de propagare orizontală spre dreapta">🌊 Propagare Dreapta</button>
-                    </div>
-                </div>
-
-                <!-- Setări margini -->
-                <div class="rule-field-inline">
-                    <label for="rule-boundary">Margini grid:</label>
-                    <select id="rule-boundary">
-                        <option value="wrap" selected>Toroidal (marginile se unesc)</option>
-                        <option value="dead">Margine moartă (celule 0 în afară)</option>
-                    </select>
-                </div>
-
-                <button id="btn-apply-rules" class="btn-success">🚀 Aplică Regulile pe Simulator</button>
             </div>
 
-            <!-- 3. Panou Analiză -->
-            <div class="panel analysis-panel">
-                <h3>Analiză</h3>
-                <select id="analysis-type">
-                    <option value="state_after_n">Stare după N iterații</option>
-                    <option value="steady_state">Stare stabilă (still life)</option>
-                    <option value="pattern_search">Căutare configurație</option>
-                    <option value="cell_count">Contorizare celule active</option>
-                    <option value="cycle_detection">Detectare ciclu periodic</option>
-                </select>
-                <input type="number" id="analysis-param-n" placeholder="N (iterații)" min="1" value="100">
-                <button id="btn-analyze">📊 Calculează</button>
-                <div id="analysis-result" class="feedback hidden"></div>
+            <!-- 4. HASHMAP OPTIMIZARE INFO (Cerința 4) -->
+            <div class="panel-box info-box">
+                <h4 class="info-title">🧠 4. Hashmap Memoization Cache</h4>
+                <p class="info-text">
+                    Fiecare secțiune 3×3 de hartă este salvată într-un <strong>Hashmap</strong> la prima calculare.
+                    Dacă un pattern a mai fost întâlnit (oscilatori, still-life, vid), starea viitoare este regăsită instantaneu în <strong>O(1)</strong>!
+                </p>
             </div>
         </aside>
     </main>
 
-    <!-- Scripturi -->
-    <script src="/static/js/api_client.js"></script>
-    <script src="/static/js/grid.js"></script>
-    <script src="/static/js/controls.js"></script>
-    <script src="/static/js/rules_panel.js"></script>
-    <script src="/static/js/main.js"></script>
+    <!-- Scripturi cu suport dual pentru încărcare fără eroare (file:// și localhost) -->
+    <script src="js/grid.js"></script>
+    <script src="js/controls.js"></script>
+    <script src="js/rules_panel.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
