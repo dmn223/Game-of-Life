@@ -296,3 +296,48 @@ Pentru eficiență, păstrez doar starea curentă și informațiile necesare în
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 11)
 
 ---
+
+
+### [2026-10-21 / Pasul 12] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Cerere de creare în interfața grafică (sub eticheta „Reguli (Limbaj Natural)”) a unei secțiuni pentru introducerea regulilor personalizate. Regulile trebuie să fie de forma:
+„pentru câmpul curent [x,y], dacă am vecinii [[x+1,y],...] (orice combinație raportată la câmpul curent) să aibă loc următoarele stări: câmpurile [lista de câmpuri] se transformă din 0 în 1, sau invers, sau se mențin. Dacă la un anumit moment un câmp poate utiliza mai multe reguli, vor avea loc toate, simultan”.
+Interfața trebuie să fie intuitivă și să permită rularea efectivă a simulării (Play/Step/Pause) cu vizualizarea modificării celulelor.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Arhitectură Motor de Simulare & Reguli (`ui/api/routes.py`, `ui/api/websocket.py`):**
+   - Implementat suport complet pentru reguli cu vecinătăți relative `[x+dx, y+dy]` cu condiții pe stări (0, 1 sau oricare).
+   - Implementat aplicarea pe liste arbitrare de câmpuri țintă relative cu acțiuni multiple: `set_1` (devine 1), `set_0` (devine 0), `invert` (se inversează 0↔1), `keep` (se menține).
+   - Implementat evaluarea simultană: toate regulile care se potrivesc la un moment dat se aplică cumulativ și simultan la trecerea în generația următoare.
+   - Adăugat parser pe backend (`POST /api/rules/parse_custom`) pentru sintaxa text specificată.
+
+2. **Interfață Grafică Intuitivă (`ui/static/`):**
+   - Adăugată secțiunea dedicată sub eticheta de reguli: **Reguli Personalizate [x, y]**.
+   - Creat sistem cu 2 moduri intuitive:
+     - **Mod Text (Sintaxă Naturală):** zonă de introducere liberă unde utilizatorul poate scrie direct reguli în limbajul cerut, parsate automat și adăugate în lista activă.
+     - **Constructor Vizual Interactiv:** grilă 5×5 centrată pe `[x, y]` unde utilizatorul dă click pe vecini pentru a impune condițiile (verde = 1, roșu = 0, neutru = oricare), selector pentru starea celulei curente și selector pentru câmpurile țintă și acțiunea dorită.
+   - Adăugată lista activă de reguli cu carduri vizuale și butoane de ștergere individuală.
+   - Adăugate presetări rapide: *Conway's Game of Life*, *Seeds*, și *Inversor [x, y]* cu acțiuni pe câmpuri multiple.
+   - Conectat complet fluxul de simulare interactivă: butoanele ▶ Play, ⏸ Pause, ⏭ Step, ⏹ Reset, 🎲 Random, 🗑️ Clear funcționează direct pe canvas în timp real prin WebSocket și REST fallback.
+
+3. **Validare & Testare:**
+   - Testat motorul de tranziții cu reguli relative și multiple efecte simultane — test confirmat.
+   - Verificat parser-ul text pentru sintaxa cerută — test confirmat.
+   - Rulat suita pytest: 18 teste trecute cu succes.
+
+**Fișiere create/modificate:**
+- `ui/api/routes.py` (motor de reguli relative & aplicare simultană & parser custom)
+- `ui/api/websocket.py` (streaming robust WebSocket cu sincronizare stare)
+- `ui/static/index.html` (interfață vizuală nouă cu tab-uri text/vizual, grilă 5x5 de vecini și controale)
+- `ui/static/css/style.css` (stiluri moderne dark theme, badge-uri, grilă pattern 5x5, carduri reguli)
+- `ui/static/js/api_client.js` (client API complet pentru reguli și simulare)
+- `ui/static/js/grid.js` (metode de numărare și sincronizare desenare pe canvas)
+- `ui/static/js/controls.js` (controale Play/Pause/Step legate la WebSocket și REST)
+- `ui/static/js/rules_panel.js` (logica constructorului vizual, parsare text, preseturi și management reguli)
+- `ui/static/js/main.js` (inițializare componente și sincronizare stare)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 12)
+
+---

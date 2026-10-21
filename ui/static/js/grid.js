@@ -1,11 +1,10 @@
 /**
- * CelLab Grid — Desenare și interacțiune pe Canvas.
+ * CelLab Grid — Desenare și interacțiune pe HTML5 Canvas.
  *
  * Responsabilități:
- * - Randare grid pe HTML5 Canvas
- * - Interacțiune mouse (click, drag pentru desenare celule)
- * - Zoom și pan
- * - Actualizare vizuală la schimbarea stării
+ * - Randare grid pe Canvas cu HiDPI support
+ * - Desenare interactivă cu mouse-ul (click & drag)
+ * - Actualizare instantanee a stării celulelor
  */
 
 class GridRenderer {
@@ -22,42 +21,36 @@ class GridRenderer {
         this.gridHeight = options.gridHeight || 50;
         this.cellSize = options.cellSize || 12;
 
-        // Starea gridului (matrice 2D de indici de stare)
+        // Starea gridului (matrice 2D de 0 și 1)
         this.cells = [];
         this.initEmptyGrid();
 
-        // Culori stări (se actualizează din spec)
+        // Culori stări: 0 = dead (fundal închis), 1 = alive (verde vibrant)
         this.stateColors = ['#1a1a2e', '#00ff88'];
 
-        // Stare interacțiune
+        // Stare interacțiune desenare
         this.isDrawing = false;
-        this.drawState = 1; // Indexul stării cu care se desenează
-
-        // Zoom & Pan
-        this.scale = 1;
-        this.offsetX = 0;
-        this.offsetY = 0;
+        this.drawState = 1;
 
         // Callbacks
-        this.onCellToggle = null; // Funcție apelată la click pe celulă
+        this.onCellToggle = null;
 
         this._setupCanvas();
         this._setupEventListeners();
     }
 
-    /** Inițializează un grid gol. */
+    /** Inițializează un grid gol de 0. */
     initEmptyGrid() {
         this.cells = Array.from({ length: this.gridHeight }, () =>
             Array(this.gridWidth).fill(0)
         );
     }
 
-    /** Configurează dimensiunile canvas-ului. */
+    /** Configurează dimensiunile canvas-ului și suportul pentru ecrane Retina/HiDPI. */
     _setupCanvas() {
         const displayWidth = this.gridWidth * this.cellSize;
         const displayHeight = this.gridHeight * this.cellSize;
 
-        // High DPI support
         const dpr = window.devicePixelRatio || 1;
         this.canvas.width = displayWidth * dpr;
         this.canvas.height = displayHeight * dpr;
@@ -66,16 +59,15 @@ class GridRenderer {
         this.ctx.scale(dpr, dpr);
     }
 
-    /** Atașează event listener-ii pentru interacțiune. */
+    /** Atașează event listener-ii pentru interacțiune cu mouse-ul. */
     _setupEventListeners() {
         this.canvas.addEventListener('mousedown', (e) => this._onMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this._onMouseMove(e));
-        this.canvas.addEventListener('mouseup', () => this._onMouseUp());
+        window.addEventListener('mouseup', () => this._onMouseUp());
         this.canvas.addEventListener('mouseleave', () => this._onMouseUp());
-        // TODO: Touch events, wheel zoom
     }
 
-    /** Convertește coordonate mouse → celulă grid. */
+    /** Convertește coordonatele mouse-ului în coordonate de celulă (row, col). */
     _mouseToCell(event) {
         const rect = this.canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
@@ -88,7 +80,11 @@ class GridRenderer {
     _onMouseDown(event) {
         this.isDrawing = true;
         const { row, col } = this._mouseToCell(event);
-        this._toggleCell(row, col);
+        if (row >= 0 && row < this.gridHeight && col >= 0 && col < this.gridWidth) {
+            // Dacă dăm click pe o celulă vie, o transformăm în 0; altfel în 1
+            this.drawState = this.cells[row][col] === 1 ? 0 : 1;
+            this._setCell(row, col, this.drawState);
+        }
     }
 
     _onMouseMove(event) {
@@ -101,60 +97,59 @@ class GridRenderer {
         this.isDrawing = false;
     }
 
-    _toggleCell(row, col) {
-        if (row < 0 || row >= this.gridHeight || col < 0 || col >= this.gridWidth) return;
-        this.cells[row][col] = this.cells[row][col] === 0 ? this.drawState : 0;
-        this.render();
-        if (this.onCellToggle) this.onCellToggle(row, col, this.cells[row][col]);
-    }
-
     _setCell(row, col, state) {
         if (row < 0 || row >= this.gridHeight || col < 0 || col >= this.gridWidth) return;
         if (this.cells[row][col] === state) return;
         this.cells[row][col] = state;
         this.render();
-        if (this.onCellToggle) this.onCellToggle(row, col, state);
+        if (this.onCellToggle) {
+            this.onCellToggle(row, col, state);
+        }
     }
 
     /**
-     * Actualizează gridul complet din date server.
-     * @param {number[][]} gridData - Matricea de stări.
+     * Actualizează gridul complet din datele serverului.
+     * @param {number[][]} gridData - Matricea de 0 și 1.
      */
     updateGrid(gridData) {
+        if (!gridData || gridData.length === 0) return;
         this.cells = gridData;
+        this.gridHeight = gridData.length;
+        this.gridWidth = gridData[0].length;
         this.render();
     }
 
-    /**
-     * Actualizează culorile stărilor din specificație.
-     * @param {string[]} colors - Lista de culori hex.
-     */
-    setStateColors(colors) {
-        this.stateColors = colors;
-        this.render();
+    /** Calculează numărul de celule active (cu valoarea 1). */
+    getActiveCellCount() {
+        let count = 0;
+        for (let r = 0; r < this.gridHeight; r++) {
+            for (let c = 0; c < this.gridWidth; c++) {
+                if (this.cells[r][c] === 1) count++;
+            }
+        }
+        return count;
     }
 
-    /** Randează întregul grid pe canvas. */
+    /** Randează gridul complet pe canvas. */
     render() {
         const ctx = this.ctx;
         const size = this.cellSize;
 
-        // Clear canvas
+        // Șterge fundalul
         ctx.fillStyle = this.stateColors[0] || '#1a1a2e';
         ctx.fillRect(0, 0, this.gridWidth * size, this.gridHeight * size);
 
-        // Desenează celulele active
+        // Desenează celulele vii (1)
+        ctx.fillStyle = this.stateColors[1] || '#00ff88';
         for (let row = 0; row < this.gridHeight; row++) {
             for (let col = 0; col < this.gridWidth; col++) {
-                const state = this.cells[row]?.[col] || 0;
-                if (state !== 0) {
-                    ctx.fillStyle = this.stateColors[state] || '#00ff88';
+                if (this.cells[row]?.[col] === 1) {
                     ctx.fillRect(col * size + 1, row * size + 1, size - 1, size - 1);
                 }
             }
         }
 
-        // Desenează grid lines (subțiri)
+        // Linii de grilă subțiri
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
         ctx.lineWidth = 0.5;
         for (let x = 0; x <= this.gridWidth; x++) {
@@ -171,7 +166,7 @@ class GridRenderer {
         }
     }
 
-    /** Populează gridul aleatoriu. */
+    /** Populează gridul aleatoriu local. */
     randomize(density = 0.3) {
         for (let row = 0; row < this.gridHeight; row++) {
             for (let col = 0; col < this.gridWidth; col++) {
@@ -181,7 +176,7 @@ class GridRenderer {
         this.render();
     }
 
-    /** Șterge tot gridul. */
+    /** Resetează toate celulele la 0. */
     clear() {
         this.initEmptyGrid();
         this.render();

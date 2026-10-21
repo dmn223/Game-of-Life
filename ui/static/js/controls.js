@@ -1,5 +1,6 @@
 /**
- * CelLab Controls — Logica butoanelor de control (Play/Pause/Step/Reset).
+ * CelLab Controls — Controlul simulării (Play/Pause/Step/Reset/Random/Clear).
+ * Conexiune hibridă: WebSocket pentru streaming rapid + fallback REST.
  */
 
 class SimulationControls {
@@ -9,12 +10,13 @@ class SimulationControls {
     constructor(gridRenderer) {
         this.grid = gridRenderer;
         this.isPlaying = false;
-        this.animationId = null;
         this.speed = 10; // generații pe secundă
-        this.ws = null; // WebSocket connection
+        this.ws = null;
+        this.generation = 0;
 
         this._bindElements();
         this._bindEvents();
+        this._initWebSocket();
     }
 
     _bindElements() {
@@ -28,6 +30,7 @@ class SimulationControls {
         this.speedValue = document.getElementById('speed-value');
         this.generationCounter = document.getElementById('generation-counter');
         this.cellCount = document.getElementById('cell-count');
+        this.statusIndicator = document.getElementById('status-indicator');
     }
 
     _bindEvents() {
@@ -39,55 +42,181 @@ class SimulationControls {
         this.btnClear.addEventListener('click', () => this.clear());
 
         this.speedSlider.addEventListener('input', (e) => {
-            this.speed = parseInt(e.target.value);
+            this.speed = parseInt(e.target.value, 10);
             this.speedValue.textContent = `${this.speed} gen/s`;
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({ action: 'speed', value: this.speed }));
+            }
         });
+
+        // Când utilizatorul desenează pe canvas, sincronizăm cu serverul
+        this.grid.onCellToggle = (row, col, state) => {
+            ApiClient.toggleCell(row, col).catch(() => {});
+            this.updateCounters(this.generation, this.grid.getActiveCellCount());
+        };
     }
 
-    play() {
+    _initWebSocket() {
+        try {
+            this.ws = ApiClient.createSimulationSocket();
+
+            this.ws.onopen = () => {
+                if (this.statusIndicator) {
+                    this.statusIndicator.textContent = '● Conectat (WebSocket)';
+                    this.statusIndicator.className = 'status-badge connected';
+                }
+            };
+
+            this.ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'grid') {
+                        this.grid.updateGrid(data.data);
+                        this.generation = data.generation;
+                        this.updateCounters(data.generation, data.active_cells);
+                    } else if (data.type === 'error') {
+                        this.pause();
+                        alert(`Eroare simulare: ${data.message}`);
+                    }
+                } catch (e) {
+                    console.error('Eroare procesare mesaj WS:', e);
+                }
+            };
+
+            this.ws.onclose = () => {
+                if (this.statusIndicator) {
+                    this.statusIndicator.textContent = '○ Mod REST (reconectare...)';
+                    this.statusIndicator.className = 'status-badge disconnected';
+                }
+                setTimeout(() => this._initWebSocket(), 3000);
+            };
+
+            this.ws.onerror = () => {
+                if (this.statusIndicator) {
+                    this.statusIndicator.textContent = '○ Mod REST';
+                    this.statusIndicator.className = 'status-badge disconnected';
+                }
+            };
+        } catch (e) {
+            console.warn('Nu s-a putut inițializa WebSocket, se folosește REST fallback.');
+        }
+    }
+
+    _wsSend(payload) {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify(payload));
+            return true;
+        }
+        return false;
+    }
+
+    async play() {
         this.isPlaying = true;
         this.btnPlay.disabled = true;
         this.btnPause.disabled = false;
-        // TODO: Pornire simulare via WebSocket
-        console.log('▶ Play — simulare pornită');
+
+        // Trimitem starea curentă a gridului la server pentru siguranță
+        await ApiClient.setGrid(this.grid.cells).catch(() => {});
+
+        const sent = this._wsSend({ action: 'set_grid', grid: this.grid.cells }) &&
+                     this._wsSend({ action: 'speed', value: this.speed }) &&
+                     this._wsSend({ action: 'start' });
+
+        if (!sent) {
+            // Fallback REST interval loop
+            this._runRestLoop();
+        }
+    }
+
+    _runRestLoop() {
+        if (!this.isPlaying) return;
+        ApiClient.simulateStep()
+            .then((data) => {
+                if (data && data.grid) {
+                    this.grid.updateGrid(data.grid);
+                    this.generation = data.generation;
+                    this.updateCounters(data.generation, data.active_cells);
+                }
+                if (this.isPlaying) {
+                    setTimeout(() => this._runRestLoop(), 1000 / this.speed);
+                }
+            })
+            .catch((err) => {
+                this.pause();
+                alert(`Eroare: ${err.message}`);
+            });
     }
 
     pause() {
         this.isPlaying = false;
         this.btnPlay.disabled = false;
         this.btnPause.disabled = true;
-        // TODO: Oprire simulare via WebSocket
-        console.log('⏸ Pause — simulare oprită');
+        this._wsSend({ action: 'stop' });
     }
 
-    step() {
-        // TODO: Un singur pas de simulare
-        console.log('⏭ Step — un pas de simulare');
+    async step() {
+        // Dacă e în play, punem pauză mai întâi
+        if (this.isPlaying) {
+            this.pause();
+        }
+
+        // Asigurăm sincronizarea gridului desenat manual
+        await ApiClient.setGrid(this.grid.cells).catch(() => {});
+
+        try {
+            const data = await ApiClient.simulateStep();
+            if (data && data.grid) {
+                this.grid.updateGrid(data.grid);
+                this.generation = data.generation;
+                this.updateCounters(data.generation, data.active_cells);
+            }
+        } catch (err) {
+            alert(`Nu s-a putut rula pasul: ${err.message}\nAsigurați-vă că ați adăugat cel puțin o regulă și ați apăsat "Aplică Regulile".`);
+        }
     }
 
-    reset() {
+    async reset() {
         this.pause();
-        // TODO: Reset simulare
-        console.log('⏹ Reset — simulare resetată');
+        await ApiClient.resetSimulation().catch(() => {});
+        this.generation = 0;
+        this.updateCounters(0, this.grid.getActiveCellCount());
     }
 
-    randomize() {
-        this.grid.randomize(0.3);
-        console.log('🎲 Random — grid populat aleatoriu');
+    async randomize() {
+        this.pause();
+        try {
+            const res = await ApiClient.randomGrid(0.3);
+            if (res && res.grid) {
+                this.grid.updateGrid(res.grid);
+                this.generation = 0;
+                this.updateCounters(0, res.active_cells);
+            }
+        } catch (e) {
+            this.grid.randomize(0.3);
+            this.generation = 0;
+            this.updateCounters(0, this.grid.getActiveCellCount());
+        }
     }
 
-    clear() {
+    async clear() {
+        this.pause();
+        try {
+            await ApiClient.clearGrid();
+        } catch (e) {}
         this.grid.clear();
-        console.log('🗑 Clear — grid șters');
+        this.generation = 0;
+        this.updateCounters(0, 0);
     }
 
     /**
-     * Actualizează contoarele din UI.
-     * @param {number} generation - Numărul generației.
-     * @param {number} activeCells - Numărul de celule active.
+     * Actualizează contoarele din antetul Canvas-ului.
      */
     updateCounters(generation, activeCells) {
-        this.generationCounter.textContent = `Generația: ${generation}`;
-        this.cellCount.textContent = `Celule active: ${activeCells}`;
+        if (this.generationCounter) {
+            this.generationCounter.textContent = `Generația: ${generation}`;
+        }
+        if (this.cellCount) {
+            this.cellCount.textContent = `Celule active: ${activeCells}`;
+        }
     }
 }

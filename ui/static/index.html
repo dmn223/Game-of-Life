@@ -8,31 +8,35 @@
 </head>
 <body>
     <header>
-        <h1 class="title">CelLab</h1>
-        <p class="subtitle">Simulator de Automate Celulare 2D</p>
+        <h1 class="title">🧬 CelLab</h1>
+        <p class="subtitle">Sistem pentru Descrierea, Validarea și Simularea Automatelor Celulare 2D</p>
     </header>
 
     <main>
-        <!-- Grid Canvas -->
+        <!-- Grid Canvas & Status -->
         <section class="grid-section">
             <canvas id="grid-canvas"></canvas>
             <div class="grid-info">
                 <span id="generation-counter">Generația: 0</span>
                 <span id="cell-count">Celule active: 0</span>
                 <span id="grid-size">Grid: 50×50</span>
+                <span id="status-indicator" class="status-badge connected">● Conectat</span>
+            </div>
+            <div class="canvas-hint">
+                💡 <em>Click sau drag pe grid pentru a desena/șterge celule (1 = verde, 0 = fundal închis).</em>
             </div>
         </section>
 
-        <!-- Sidebar -->
+        <!-- Sidebar Controale & Reguli -->
         <aside class="sidebar">
-            <!-- Controale simulare -->
-            <div class="controls-panel">
-                <h3>Controale</h3>
-                <div class="btn-group">
-                    <button id="btn-play" title="Play">▶</button>
-                    <button id="btn-pause" title="Pause" disabled>⏸</button>
-                    <button id="btn-step" title="Un pas">⏭</button>
-                    <button id="btn-reset" title="Reset">⏹</button>
+            <!-- 1. Controale simulare -->
+            <div class="panel controls-panel">
+                <h3>Controale Simulare</h3>
+                <div class="btn-group main-controls">
+                    <button id="btn-play" class="btn-primary" title="Pornește simularea">▶ Play</button>
+                    <button id="btn-pause" title="Pune pauză" disabled>⏸ Pause</button>
+                    <button id="btn-step" class="btn-secondary" title="Avansează o generație">⏭ Step</button>
+                    <button id="btn-reset" title="Resetează generația la 0">⏹ Reset</button>
                 </div>
                 <div class="speed-control">
                     <label for="speed-slider">Viteză:</label>
@@ -41,35 +45,120 @@
                 </div>
                 <div class="btn-group">
                     <button id="btn-random" title="Populare aleatorie">🎲 Random</button>
-                    <button id="btn-clear" title="Șterge tot">🗑️ Clear</button>
+                    <button id="btn-clear" title="Șterge tot gridul">🗑️ Clear</button>
                 </div>
             </div>
 
-            <!-- Panou NLP -->
-            <div class="nlp-panel">
+            <!-- 2. Reguli Limbaj Natural & Editor Personalizat -->
+            <div class="panel rules-panel">
                 <h3>Reguli (Limbaj Natural)</h3>
-                <textarea
-                    id="nlp-input"
-                    placeholder="Descrieți regulile automatului celular...&#10;&#10;Exemplu: A cell survives if it has 2 or 3 alive neighbors. A dead cell becomes alive if it has exactly 3 alive neighbors."
-                    rows="6"
-                ></textarea>
-                <button id="btn-parse">🔍 Parsează Reguli</button>
-                <div id="parse-feedback" class="feedback hidden"></div>
+
+                <!-- Sub-label cerut explicit de utilizator -->
+                <div class="sub-label-header">
+                    <span class="badge-tag">Reguli Personalizate [x, y]</span>
+                    <p class="section-desc">
+                        Definiți reguli relative raportate la câmpul curent <code>[x, y]</code> și vecinii săi <code>[[x+dx, y+dy], ...]</code>.
+                        Dacă o celulă poate utiliza mai multe reguli, <strong>toate vor avea loc simultan</strong>.
+                    </p>
+                </div>
+
+                <!-- Tabs: Mod Text vs Mod Vizual -->
+                <div class="tabs-header">
+                    <button id="tab-btn-text" class="tab-btn active">✍️ Text / Sintaxă Naturală</button>
+                    <button id="tab-btn-visual" class="tab-btn">🎨 Constructor Vizual</button>
+                </div>
+
+                <!-- Mod 1: Introducere directă text -->
+                <div id="tab-content-text" class="tab-content active">
+                    <label for="custom-rule-text" class="field-label">Introduceți regula în limbaj natural / semi-formal:</label>
+                    <textarea
+                        id="custom-rule-text"
+                        placeholder="Exemplu:&#10;pentru campul curent [x,y], daca am vecinii [[x+1,y], [x-1,y]] sa aiba loc urmatoarele stari: campurile [x,y] se transforma din 0 in 1&#10;&#10;sau mai multe tinte:&#10;daca vecinii [[x+1,y]=1, [x,y+1]=1] atunci campurile [x,y] se transforma in 1, [x+1,y] se transforma din 1 in 0"
+                        rows="4"
+                    ></textarea>
+                    <div class="button-row">
+                        <button id="btn-parse-add-rule" class="btn-accent">➕ Parsează & Adaugă Regulă</button>
+                    </div>
+                </div>
+
+                <!-- Mod 2: Constructor Vizual Interactiv -->
+                <div id="tab-content-visual" class="tab-content">
+                    <div class="rule-field">
+                        <label class="field-label">Starea celulei curente <code>[x, y]</code>:</label>
+                        <select id="visual-current-state">
+                            <option value="-1">Oricare (*)</option>
+                            <option value="0" selected>0 (Moartă)</option>
+                            <option value="1">1 (Vie)</option>
+                        </select>
+                    </div>
+
+                    <div class="rule-field">
+                        <label class="field-label">Configurație vecini relative <code>[x+dx, y+dy]</code>:</label>
+                        <p class="mini-hint">Click pe căsuțe: ⬜ Oricare | 🟢 Trebuie să fie 1 | 🔴 Trebuie să fie 0</p>
+                        <div id="pattern-grid-container" class="pattern-grid-container">
+                            <!-- Grilă 5x5 generată automat prin JS -->
+                        </div>
+                    </div>
+
+                    <div class="rule-field">
+                        <label class="field-label">Câmpuri țintă & Acțiune:</label>
+                        <div class="target-field-row">
+                            <select id="visual-target-field">
+                                <option value="0,0" selected>Câmpul curent [x, y]</option>
+                                <option value="1,0">[x+1, y] (dreapta)</option>
+                                <option value="-1,0">[x-1, y] (stânga)</option>
+                                <option value="0,1">[x, y+1] (jos)</option>
+                                <option value="0,-1">[x, y-1] (sus)</option>
+                                <option value="1,1">[x+1, y+1] (diagonală)</option>
+                            </select>
+                            <select id="visual-action">
+                                <option value="set_1" selected>Devine 1 (din 0 în 1)</option>
+                                <option value="set_0">Devine 0 (din 1 în 0)</option>
+                                <option value="invert">Invers (0 ↔ 1)</option>
+                                <option value="keep">Se menține</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button id="btn-add-visual-rule" class="btn-accent">➕ Adaugă Regulă Vizuală</button>
+                </div>
+
+                <!-- Feedback mesaje -->
+                <div id="rule-feedback" class="feedback hidden"></div>
+
+                <!-- Lista Regulilor Active -->
+                <div class="active-rules-header">
+                    <h4>📋 Reguli Active (<span id="rules-count-badge">0</span>)</h4>
+                    <button id="btn-clear-rules" class="btn-tiny" title="Șterge toate regulile">Șterge tot</button>
+                </div>
+                <div id="active-rules-list" class="active-rules-list">
+                    <p class="placeholder">Nicio regulă activă. Adăugați o regulă sau alegeți o presetare mai jos.</p>
+                </div>
+
+                <!-- Presetări Rapide -->
+                <div class="presets-section">
+                    <h4>⚡ Presetări Rapide</h4>
+                    <div class="btn-group presets-grid">
+                        <button id="btn-preset-gol" class="btn-preset" title="Conway's Game of Life (B3/S23)">🧬 Game of Life</button>
+                        <button id="btn-preset-seeds" class="btn-preset" title="Seeds (B2/S)">🌱 Seeds</button>
+                        <button id="btn-preset-inverter" class="btn-preset" title="Regulă relativă: vecinii [x+1,y] și [x-1,y] inversează [x,y]">🔄 Inversor [x, y]</button>
+                    </div>
+                </div>
+
+                <!-- Setări margini -->
+                <div class="rule-field-inline">
+                    <label for="rule-boundary">Margini grid:</label>
+                    <select id="rule-boundary">
+                        <option value="wrap" selected>Toroidal (wrap)</option>
+                        <option value="dead">Margine moartă (dead)</option>
+                    </select>
+                </div>
+
+                <button id="btn-apply-rules" class="btn-success">🚀 Aplică Regulile pe Simulator</button>
             </div>
 
-            <!-- Specificație curentă -->
-            <div class="spec-panel">
-                <h3>Specificație Activă</h3>
-                <div id="spec-display" class="spec-display">
-                    <p class="placeholder">Nicio specificație încărcată.</p>
-                </div>
-                <div class="example-buttons">
-                    <button id="btn-load-gol" class="btn-example">📋 Game of Life</button>
-                </div>
-            </div>
-
-            <!-- Panou Analiză -->
-            <div class="analysis-panel">
+            <!-- 3. Panou Analiză -->
+            <div class="panel analysis-panel">
                 <h3>Analiză</h3>
                 <select id="analysis-type">
                     <option value="state_after_n">Stare după N iterații</option>
@@ -79,12 +168,13 @@
                     <option value="cycle_detection">Detectare ciclu</option>
                 </select>
                 <input type="number" id="analysis-param-n" placeholder="N (iterații)" min="1" value="100">
-                <button id="btn-analyze">📊 Analizează</button>
+                <button id="btn-analyze">📊 Calculează</button>
                 <div id="analysis-result" class="feedback hidden"></div>
             </div>
         </aside>
     </main>
 
+    <!-- Scripturi -->
     <script src="/static/js/api_client.js"></script>
     <script src="/static/js/grid.js"></script>
     <script src="/static/js/controls.js"></script>

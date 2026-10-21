@@ -1,7 +1,5 @@
 /**
- * CelLab API Client — Comunicare cu backend-ul FastAPI.
- *
- * Furnizează funcții pentru toate endpoint-urile REST și WebSocket.
+ * CelLab API Client — Comunicare completă cu backend-ul FastAPI.
  */
 
 const API_BASE = '/api';
@@ -9,119 +7,147 @@ const WS_BASE = `ws://${window.location.host}/ws`;
 
 const ApiClient = {
     /**
-     * Parsează reguli în limbaj natural.
-     * @param {string} text - Textul cu regulile.
-     * @returns {Promise<Object>} Răspunsul cu specificația parsată.
+     * Setează lista de reguli active și tipul de margine.
      */
-    async parseRules(text) {
-        const response = await fetch(`${API_BASE}/parse`, {
+    async setRules(rules, boundary = 'wrap') {
+        const r = await fetch(`${API_BASE}/rules/set`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rules, boundary }),
+        });
+        if (!r.ok) {
+            const err = await r.json();
+            throw new Error(err.detail || 'Eroare la setarea regulilor');
+        }
+        return r.json();
+    },
+
+    /**
+     * Obține regulile active curente de pe server.
+     */
+    async getRules() {
+        const r = await fetch(`${API_BASE}/rules`);
+        return r.json();
+    },
+
+    /**
+     * Trimite un text în limbaj natural / sintaxă [x, y] pentru a fi parsat pe backend.
+     */
+    async parseCustomRule(text) {
+        const r = await fetch(`${API_BASE}/rules/parse_custom`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text }),
         });
-        return response.json();
+        if (!r.ok) {
+            const err = await r.json();
+            throw new Error(err.detail || 'Nu s-a putut parsa regula');
+        }
+        return r.json();
     },
 
     /**
-     * Încarcă o specificație JSON direct.
-     * @param {Object} spec - Specificația automatului.
-     * @returns {Promise<Object>} Răspunsul serverului.
+     * Obține starea completă curentă (grid, generație, celule active).
      */
-    async loadSpec(spec) {
-        const response = await fetch(`${API_BASE}/spec/load`, {
+    async getState() {
+        const r = await fetch(`${API_BASE}/state`);
+        return r.json();
+    },
+
+    /**
+     * Schimbă starea unei celule pe server.
+     */
+    async toggleCell(row, col) {
+        const r = await fetch(`${API_BASE}/grid/toggle`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(spec),
+            body: JSON.stringify({ row, col }),
         });
-        return response.json();
+        return r.json();
     },
 
     /**
-     * Obține specificația curentă.
-     * @returns {Promise<Object>} Specificația curentă.
+     * Setează întregul grid pe server.
      */
-    async getSpec() {
-        const response = await fetch(`${API_BASE}/spec`);
-        return response.json();
+    async setGrid(grid) {
+        const r = await fetch(`${API_BASE}/grid/set`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ grid }),
+        });
+        return r.json();
     },
 
     /**
-     * Calculează un pas de simulare.
-     * @returns {Promise<Object>} Starea nouă a gridului.
+     * Curăță gridul (toate celulele 0).
+     */
+    async clearGrid() {
+        const r = await fetch(`${API_BASE}/grid/clear`, { method: 'POST' });
+        return r.json();
+    },
+
+    /**
+     * Populează aleatoriu gridul.
+     */
+    async randomGrid(density = 0.3) {
+        const r = await fetch(`${API_BASE}/grid/random`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ density }),
+        });
+        return r.json();
+    },
+
+    /**
+     * Execută un singur pas de simulare pe server.
      */
     async simulateStep() {
-        const response = await fetch(`${API_BASE}/simulate/step`, {
-            method: 'POST',
-        });
-        return response.json();
+        const r = await fetch(`${API_BASE}/simulate/step`, { method: 'POST' });
+        if (!r.ok) {
+            const err = await r.json();
+            throw new Error(err.detail || 'Eroare la simulare');
+        }
+        return r.json();
     },
 
     /**
-     * Rulează mai multe pași de simulare.
-     * @param {number} steps - Numărul de pași.
-     * @returns {Promise<Object>} Starea finală.
+     * Rulează N generații.
      */
-    async simulateRun(steps) {
-        const response = await fetch(`${API_BASE}/simulate/run`, {
+    async simulateRun(steps = 1) {
+        const r = await fetch(`${API_BASE}/simulate/run`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ steps }),
         });
-        return response.json();
+        if (!r.ok) {
+            const err = await r.json();
+            throw new Error(err.detail || 'Eroare la simulare');
+        }
+        return r.json();
     },
 
     /**
-     * Resetează simularea.
-     * @returns {Promise<Object>}
+     * Resetează contorul de generații.
      */
     async resetSimulation() {
-        const response = await fetch(`${API_BASE}/simulate/reset`, {
-            method: 'POST',
-        });
-        return response.json();
+        const r = await fetch(`${API_BASE}/simulate/reset`, { method: 'POST' });
+        return r.json();
     },
 
     /**
-     * Actualizează celule pe grid.
-     * @param {Array} cells - Lista de celule [{row, col, state}].
-     * @returns {Promise<Object>}
-     */
-    async updateGrid(cells) {
-        const response = await fetch(`${API_BASE}/grid/update`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cells }),
-        });
-        return response.json();
-    },
-
-    /**
-     * Execută o analiză.
-     * @param {string} questionType - Tipul întrebării.
-     * @param {Object} params - Parametrii analizei.
-     * @returns {Promise<Object>} Rezultatul analizei.
+     * Execută o cerere de analiză.
      */
     async analyze(questionType, params = {}) {
-        const response = await fetch(`${API_BASE}/analyze`, {
+        const r = await fetch(`${API_BASE}/analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question_type: questionType, params }),
         });
-        return response.json();
+        return r.json();
     },
 
     /**
-     * Obține lista de exemple disponibile.
-     * @returns {Promise<Object>}
-     */
-    async getExamples() {
-        const response = await fetch(`${API_BASE}/examples`);
-        return response.json();
-    },
-
-    /**
-     * Creează o conexiune WebSocket pentru simulare.
-     * @returns {WebSocket}
+     * Deschide conexiunea WebSocket pentru streaming în timp real.
      */
     createSimulationSocket() {
         return new WebSocket(`${WS_BASE}/simulation`);

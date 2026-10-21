@@ -1,7 +1,7 @@
 """Aplicația FastAPI principală.
 
 Servește:
-- API REST pentru parsare NLP, control simulare, analiză
+- API REST pentru control simulare
 - WebSocket pentru streaming generații în timp real
 - Fișierele statice ale interfeței web (HTML/CSS/JS)
 """
