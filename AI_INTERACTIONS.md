@@ -272,3 +272,255 @@ Pentru eficiență, păstrez doar starea curentă și informațiile necesare în
 - `AI_INTERACTIONS.md` (rezolvat conflict, actualizat cu Pasul 10)
 
 ---
+
+
+### [2026-10-21 / Pasul 11] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Întrebare privind pașii exacți de pornire a serverului local (localhost) pentru rularea interfeței aplicației CelLab.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Configurare mediu:**
+   - Verificat dependențele din mediul de rulare și instalat pachetele necesare din `requirements.txt` (`fastapi`, `uvicorn[standard]`, `websockets`, `httpx`).
+   - Confirmat importul corect al modulului principal FastAPI (`ui.app`).
+2. **Ghidare pas cu pas pentru pornirea localhost:**
+   - Rularea scriptului dedicat: `py -3 scripts/run_dev.py` (sau `python scripts/run_dev.py`).
+   - Accesarea interfeței web în browser la adresa `http://localhost:8000`.
+   - Procedura de oprire a serverului (`Ctrl + C` în terminal).
+3. **Actualizare Audit Log:**
+   - Înregistrat Pasul 11 în `AI_INTERACTIONS.md` și sincronizat pe GitHub.
+
+**Fișiere create/modificate:**
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 11)
+
+---
+
+
+### [2026-10-21 / Pasul 12] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Cerere de creare în interfața grafică (sub eticheta „Reguli (Limbaj Natural)”) a unei secțiuni pentru introducerea regulilor personalizate. Regulile trebuie să fie de forma:
+„pentru câmpul curent [x,y], dacă am vecinii [[x+1,y],...] (orice combinație raportată la câmpul curent) să aibă loc următoarele stări: câmpurile [lista de câmpuri] se transformă din 0 în 1, sau invers, sau se mențin. Dacă la un anumit moment un câmp poate utiliza mai multe reguli, vor avea loc toate, simultan”.
+Interfața trebuie să fie intuitivă și să permită rularea efectivă a simulării (Play/Step/Pause) cu vizualizarea modificării celulelor.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Arhitectură Motor de Simulare & Reguli (`ui/api/routes.py`, `ui/api/websocket.py`):**
+   - Implementat suport complet pentru reguli cu vecinătăți relative `[x+dx, y+dy]` cu condiții pe stări (0, 1 sau oricare).
+   - Implementat aplicarea pe liste arbitrare de câmpuri țintă relative cu acțiuni multiple: `set_1` (devine 1), `set_0` (devine 0), `invert` (se inversează 0↔1), `keep` (se menține).
+   - Implementat evaluarea simultană: toate regulile care se potrivesc la un moment dat se aplică cumulativ și simultan la trecerea în generația următoare.
+   - Adăugat parser pe backend (`POST /api/rules/parse_custom`) pentru sintaxa text specificată.
+
+2. **Interfață Grafică Intuitivă (`ui/static/`):**
+   - Adăugată secțiunea dedicată sub eticheta de reguli: **Reguli Personalizate [x, y]**.
+   - Creat sistem cu 2 moduri intuitive:
+     - **Mod Text (Sintaxă Naturală):** zonă de introducere liberă unde utilizatorul poate scrie direct reguli în limbajul cerut, parsate automat și adăugate în lista activă.
+     - **Constructor Vizual Interactiv:** grilă 5×5 centrată pe `[x, y]` unde utilizatorul dă click pe vecini pentru a impune condițiile (verde = 1, roșu = 0, neutru = oricare), selector pentru starea celulei curente și selector pentru câmpurile țintă și acțiunea dorită.
+   - Adăugată lista activă de reguli cu carduri vizuale și butoane de ștergere individuală.
+   - Adăugate presetări rapide: *Conway's Game of Life*, *Seeds*, și *Inversor [x, y]* cu acțiuni pe câmpuri multiple.
+   - Conectat complet fluxul de simulare interactivă: butoanele ▶ Play, ⏸ Pause, ⏭ Step, ⏹ Reset, 🎲 Random, 🗑️ Clear funcționează direct pe canvas în timp real prin WebSocket și REST fallback.
+
+3. **Validare & Testare:**
+   - Testat motorul de tranziții cu reguli relative și multiple efecte simultane — test confirmat.
+   - Verificat parser-ul text pentru sintaxa cerută — test confirmat.
+   - Rulat suita pytest: 18 teste trecute cu succes.
+
+**Fișiere create/modificate:**
+- `ui/api/routes.py` (motor de reguli relative & aplicare simultană & parser custom)
+- `ui/api/websocket.py` (streaming robust WebSocket cu sincronizare stare)
+- `ui/static/index.html` (interfață vizuală nouă cu tab-uri text/vizual, grilă 5x5 de vecini și controale)
+- `ui/static/css/style.css` (stiluri moderne dark theme, badge-uri, grilă pattern 5x5, carduri reguli)
+- `ui/static/js/api_client.js` (client API complet pentru reguli și simulare)
+- `ui/static/js/grid.js` (metode de numărare și sincronizare desenare pe canvas)
+- `ui/static/js/controls.js` (controale Play/Pause/Step legate la WebSocket și REST)
+- `ui/static/js/rules_panel.js` (logica constructorului vizual, parsare text, preseturi și management reguli)
+- `ui/static/js/main.js` (inițializare componente și sincronizare stare)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 12)
+
+---
+
+
+### [2026-10-21 / Pasul 13] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Cerere de creare a unui set de reguli care să acționeze ca reguli default (implicite) în cazul în care utilizatorul nu introduce reguli proprii.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Definire Set Reguli Default (Conway's Game of Life B3/S23):**
+   - **Supraviețuire:** O celulă vie `[x,y]=1` cu 2 sau 3 vecini vii supraviețuiește (se menține 1).
+   - **Naștere:** O celulă moartă `[x,y]=0` cu exact 3 vecini vii devine vie (se transformă din 0 în 1).
+   - **Subpopulare:** O celulă vie `[x,y]=1` cu mai puțin de 2 vecini vii moare (se transformă din 1 în 0).
+   - **Suprapopulare:** O celulă vie `[x,y]=1` cu mai mult de 3 vecini vii moare (se transformă din 1 în 0).
+
+2. **Integrare Backend (`ui/api/routes.py`):**
+   - Simulatorul este pre-populat cu setul de reguli default la pornire.
+   - În cazul în care lista de reguli active este lăsată goală de către utilizator, motorul de simulare face fallback automat pe setul de reguli default, permițând rularea simulării fără nicio eroare de tipul „lipsă reguli”.
+   - Adăugate endpoint-uri REST dedicate: `GET /api/rules/default` și `POST /api/rules/reset_default`.
+   - Îmbunătățită robustețea `_step_simulation()` prin deducerea dinamică a dimensiunilor gridului.
+
+3. **Integrare Frontend (`ui/static/`):**
+   - Regulile default sunt încărcate automat la deschiderea paginii și evidențiate în lista activă cu eticheta `Default`.
+   - Adăugat butonul cu evidențiere `⭐ Reguli Default` în panoul de presetări pentru revenirea instantă la regulile implicite oricând se dorește.
+   - Adăugate metode în `ApiClient` (`getDefaultRules`, `resetDefaultRules`).
+
+4. **Validare:**
+   - Testat comportamentul de oscilație al oscilatorului Blinker sub regulile default restaurate automat — test confirmat.
+   - Rulat suita pytest: 18 teste trecute cu succes.
+
+**Fișiere create/modificate:**
+- `ui/api/routes.py` (definire `DEFAULT_RULES`, fallback automat, endpoint-uri de reset)
+- `ui/static/index.html` (buton dedicat pentru reguli default în panoul de presetări)
+- `ui/static/css/style.css` (stiluri pentru carduri default, badge-uri și buton de reset default)
+- `ui/static/js/api_client.js` (metode `getDefaultRules` și `resetDefaultRules`)
+- `ui/static/js/rules_panel.js` (afișare etichetă default pe carduri și handler de reîncărcare)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 13)
+
+---
+
+### [2026-10-21 / Pasul 14] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Semnalare că butoanele nu funcționează și că sistemul de reguli nu este ușor de utilizat. Cerere de reparare și simplificare a experienței de utilizare.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Reparare Completă a Controalelor & Motor Local de Simulare (`ui/static/js/controls.js`, `api_client.js`):**
+   - **Cauza problemei inițiale:** Conexiunea WebSocket și apelurile REST blocau fluxul sau afișau alerte blocante când serverul/rețeaua avea întârzieri sau când aplicația era deschisă fără conexiune activă. De asemenea, lipsa actualizării vizuale imediate la Random/Clear lăsa impresia că butoanele nu răspund.
+   - **Motor Local de Simulare (Client-Side Fallback):** Implementat un motor de simulare integrat în JavaScript în `controls.js` capabil să execute pas cu pas atât reguli de contor clasice (Conway B3/S23), cât și reguli relative `[x+dx, y+dy]` cu acțiuni simultane pe câmpuri multiple (`set_1`, `set_0`, `invert`, `keep`).
+   - Toate butoanele de control (▶ Play, ⏸ Pause, ⏭ Step, ⏹ Reset, 🎲 Random, 🗑️ Clear) funcționează acum garantat și instantaneu:
+     - `Random` populează imediat gridul cu celule active și actualizează canvas-ul.
+     - `Clear` șterge instantaneu ecranul.
+     - `Step` avansează o generație imediat, randând modificările celulelor pe canvas.
+     - `Play` rulează un loop fluid adaptabil la viteza setată (slider-ul de viteză funcționează între 1 și 60 gen/s).
+     - Eliminat orice `alert()` blocant; s-a adăugat sistem non-invaziv de notificări și badge-uri de stare.
+   - `api_client.js`: Asigurat suport robust pentru URL-uri relative și `file://`, prevenit orice excepție nerezolvată în WebSocket sau fetch.
+
+2. **Redesenare Completă a Panoului de Reguli — Ultra Intuitiv & Simplu (`ui/static/index.html`, `rules_panel.js`, `style.css`):**
+   - **Asistent Vizual 3×3 Intuitiv:**
+     - Înlocuită grila aglomerată 5×5 cu o matrice clară 3×3 centrată pe câmpul curent `[x, y]`.
+     - Selector dedicat cu 3 butoane clare pentru starea celulei curente: `⚪ Oricare (*)` | `🟢 Vie (1)` | `🔴 Moartă (0)`.
+     - Cei 8 vecini din jur (`Sus`, `Jos`, `Stânga`, `Dreapta`, diagonale) au căsuțe mari și clare; click-ul trece simplu prin: `⚪ Oricare` ➔ `🟢 Trebuie 1` ➔ `🔴 Trebuie 0`.
+     - Butoane rapide de configurare a vecinilor: `Resetează toți`, `Orizontal`, `Vertical`, `Cruce (+)`.
+     - Selector clar pentru câmpul afectat (`[x, y]` sau vecini) și acțiune (`devine 1`, `devine 0`, `se inversează`, `se menține`).
+   - **Mod Text cu Șabloane Rapide 1-Click:**
+     - 4 carduri/chips de exemple gata pregătite (aprindere pe orizontală, inversare pe verticală, stingere, multi-câmp).
+     - Click pe un șablon populează automat câmpul text în sintaxa cerută.
+   - **Aplicare Automată:** Adăugarea oricărei reguli o activează instant pe simulator, fără a mai fi necesară o apăsare separată pe „Aplică”.
+   - **Comutator ON/OFF Individual:** Fiecare regulă din lista activă are acum un checkbox de activare/dezactivare temporară fără a trebui ștearsă.
+   - **Presetări Rapide:** `⭐ Reguli Default (GoL B3/S23)`, `🔄 Inversor [x, y]`, `🌱 Seeds`, `🌊 Propagare Dreapta`.
+
+3. **Backend (`ui/api/routes.py`):**
+   - Adăugat suport pentru flag-ul `enabled` la nivel de regulă pentru sincronizare completă cu frontend-ul.
+
+4. **Validare & Testare:**
+   - Verificate toate fișierele JavaScript cu `node -c` (0 erori de sintaxă).
+   - Rulat suita pytest: 18 teste trecute cu succes.
+   - Verificată servirea paginii actualizate la `http://127.0.0.1:8000/`.
+
+**Fișiere create/modificate:**
+- `ui/static/js/controls.js` (motor de simulare local în JS, reziliență Play/Pause/Step/Random/Clear)
+- `ui/static/js/api_client.js` (URL builder sigur, fallback offline)
+- `ui/static/js/rules_panel.js` (grilă 3x3 intuitivă, șabloane 1-click, toggle reguli, auto-apply)
+- `ui/static/index.html` (layout modern și aerisit, asistent vizual 3x3, șabloane rapide)
+- `ui/static/css/style.css` (stiluri noi pentru grila 3x3, pills stare, carduri de reguli cu toggle)
+- `ui/static/js/main.js` (exportare instanțe globale și inițializare sincronizată)
+- `ui/api/routes.py` (suport flag `enabled` la reguli)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 14)
+
+---
+
+### [2026-10-21 / Pasul 15] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Cerere pentru:
+1. Extinderea suprafeței celulelor spre infinit (sau cel puțin foarte mare) cu suport zoom in/out pe o anumită zonă și navigare pan.
+2. Refacerea meniului de setări pentru a fi mai simplu, concis și intuitiv, rezolvând complet problema butoanelor nefuncționale.
+3. Permiterea clară a: 
+   - 1. Rulare
+   - 2. Introducere de reguli după un format prestabilit
+   - 3. Presetări rapide randomizate
+   - 4. Grid bazat pe Hashmap care reține stările calculate anterior pentru căutare facilă în O(1).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Spațiu Celular Infinit & Viewport Interactiv (`ui/static/js/grid.js`):**
+   - Grid-ul a fost transformat dintr-o matrice finită fixă 50×50 într-un **spațiu celular infinit** bazat pe Hashmap (`Map<"x,y", state>`), stocând exclusiv celulele vii. Coordonatele pot fi oricât de mari în orice direcție $(-\infty, +\infty)$, cu consum de memorie strict $O(\text{celule vii})$.
+   - **Zoom fluid (5% – 5000%):** Rotița mouse-ului mărește/micșorează centrat direct pe poziția cursorului. Butoane dedicate `🔍+` și `🔍-`.
+   - **Navigare Pan:** Deplasare pe suprafața infinită prin drag cu click dreapta, click mijloc sau folosind unealta `✋ Pan`.
+   - **Funcții de încadrare:** `🎯 Fit All` (calculează bounding box-ul tuturor celulelor vii și adaptează automat zoom-ul și camera) și `⌂ Centru` (revine la originea 0,0).
+   - **Randare virtualizată:** Pe ecran se desenează strict celulele care cad în perimetrul vizibil al camerei, asigurând fluiditate la 60 FPS.
+
+2. **Hashmap Memoization Cache (`ui/static/js/controls.js`):**
+   - Implementat mecanismul cerut de reținere a stărilor calculate anterior: fiecare secțiune locală de vecinătate este serializată într-un hash binar compact de 9 biți.
+   - La fiecare iterație, simulatorul verifică mai întâi `hashmapCache.has(hash)`:
+     - Dacă starea a fost calculată anterior (oscilatori, structuri stabile, spațiu vid): rezultatul generației viitoare este extras direct în **O(1)** fără recalculare.
+     - Dacă starea este nouă: se evaluează regulile și rezultatul se salvează în Hashmap pentru refolosire viitoare.
+   - HUD-ul afișează în timp real: `Hashmap: N stări (X% hit rate)`.
+
+3. **Format Prestabilit de Reguli & Format Simplificat (`ui/static/js/rules_panel.js`):**
+   - Definit și integrat formatul prestabilit intuitiv:
+     `[x,y] : DACA [x+dx,y+dy]=stare, ... ATUNCI [x+dx,y+dy] -> actiune`
+   - Exemple și șabloane rapide 1-click integrate:
+     - `[x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> 1`
+     - `[x,y] : DACA [x,y-1]=1, [x,y+1]=1 ATUNCI [x,y] -> invers`
+     - `[x,y] : DACA [x-1,y]=1 ATUNCI [x,y] -> 1, [x-1,y] -> 0`
+   - Mini-asistent de configurare din două dropdown-uri simple (condiție + acțiune) cu adăugare imediată.
+
+4. **Presetări Rapide Randomizate (1-Click):**
+   - `🧬 Conway's Game of Life (Randomizat)` — încarcă B3/S23 + supă celulară de 60×60 și planoare (Gliders).
+   - `🔄 Inversor Orizontal [x,y] (Randomizat)` — încarcă regula de inversare + linii orizontale aleatorii.
+   - `🌊 Val Propagare Dreapta (Randomizat)` — încarcă propagarea undelor + bariere verticale aleatorii.
+   - `🌱 Seeds B2/S (Randomizat)` — încarcă regula Seeds + clustere de semințe dispersate.
+   - `💥 Haos Multi-Câmp (Randomizat)` — transformări simultane + constelație densă.
+
+5. **Rezolvare Definitivă Problemă Butoane & Căi Fișiere (`ui/app.py`, `ui/static/index.html`):**
+   - **Cauza:** Căile absolute `/static/...` cauzau erori 404 când aplicația era deschisă direct prin protocolul `file:///` sau în anumite browsere.
+   - **Rezolvare:** S-au utilizat căi relative (`css/style.css`, `js/...`), iar în `ui/app.py` s-au montat directoarele `/css` și `/js` atât la rădăcină, cât și la `/static`, garantând încărcarea instantanee și fără erori indiferent de modalitatea de deschidere (localhost sau fișier local).
+
+6. **Validare & Testare:**
+   - Suita de teste pytest: 18 teste trecute cu succes.
+   - Verificare sintaxă JavaScript cu `node -c`: 0 erori.
+   - Verificat răspunsul serverului HTTP pentru pagină și fișiere statice: cod 200.
+
+**Fișiere create/modificate:**
+- `ui/static/js/grid.js` (InfiniteGridRenderer pe bază de Hashmap, zoom mouse-wheel, pan, fit-all)
+- `ui/static/js/controls.js` (motor de simulare infinit cu Hashmap Memoization Cache O(1) și HUD)
+- `ui/static/js/rules_panel.js` (format prestabilit de reguli, 5 presetări rapide randomizate)
+- `ui/static/index.html` (interfață nouă, curată, concisă, bară unelte de zoom și HUD integrat)
+- `ui/static/css/style.css` (stiluri noi compacte dark-theme, status pills, layout fluid flexibil)
+- `ui/static/js/main.js` (inițializare automată cu preset randomizat la deschidere)
+- `ui/app.py` (montare compatibilă căi statice)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 15)
+
+---
+
+### [2026-10-21 / Pasul 16] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Cerere de salvare și sincronizare a conversației curente pe depozitul GitHub (commit & push).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Sincronizare Istoric & Jurnal de Interacțiune:**
+   - Jurnalizat stadiul curent al proiectului CelLab în `AI_INTERACTIONS.md`, incluzând toate dezvoltările aduse: spațiu celular infinit, algoritm de memorare prin Hashmap ($\mathcal{O}(1)$), format prestabilit de reguli, noile presetări randomizate și remedierea completă a încărcării resurselor statice.
+   - Verificată integritatea tuturor componentelor din interfață și din backend.
+
+2. **Validare Proiect:**
+   - Verificată rularea suitei de teste unitare cu `pytest`: 18 teste trecute cu succes.
+   - Verificată sintaxa JavaScript pentru toate modulele frontend (`node -c`): 0 erori.
+
+3. **Publicare pe GitHub:**
+   - Efectuat commit și push către branch-ul `cellab_initial_project_setup` din depozitul remote GitHub `dmn223/Game-of-Life`.
+
+**Fișiere create/modificate:**
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 16)
+
+---

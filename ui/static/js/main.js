@@ -1,51 +1,32 @@
 /**
- * CelLab Main — Entry point pentru aplicația frontend.
- *
- * Inițializează toate componentele și le conectează.
+ * CelLab Main — Entry point pentru aplicația CelLab cu Spațiu Infinit.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🧬 CelLab — Simulator de Automate Celulare 2D');
-    console.log('Inițializare componente...');
+    console.log('🧬 CelLab — Simulator de Automate Celulare 2D pe Spațiu Infinit');
 
-    // 1. Inițializare Grid Renderer
+    // 1. Inițializare Grid Renderer Infinit pe Canvas
     const canvas = document.getElementById('grid-canvas');
-    const gridRenderer = new GridRenderer(canvas, {
-        gridWidth: 50,
-        gridHeight: 50,
-        cellSize: 12,
-    });
-    gridRenderer.render();
+    if (!canvas) {
+        console.error('Canvas elementul #grid-canvas nu a fost găsit!');
+        return;
+    }
 
-    // 2. Inițializare Controale
+    const gridRenderer = new InfiniteGridRenderer(canvas);
+    window.gridRenderer = gridRenderer;
+
+    // 2. Inițializare Controale Simulare cu Hashmap Memoization Cache
     const controls = new SimulationControls(gridRenderer);
+    window.controls = controls;
 
-    // 3. Inițializare Panou Reguli
+    // 3. Inițializare Panou Reguli în Format Prestabilit
     const rulesPanel = new RulesPanel();
+    window.rulesPanel = rulesPanel;
 
-    // 4. Inițializare Panou Analiză
-    const btnAnalyze = document.getElementById('btn-analyze');
-    const analysisType = document.getElementById('analysis-type');
-    const analysisParamN = document.getElementById('analysis-param-n');
-    const analysisResult = document.getElementById('analysis-result');
-
-    btnAnalyze.addEventListener('click', async () => {
-        const type = analysisType.value;
-        const n = parseInt(analysisParamN.value) || 100;
-
-        try {
-            const result = await ApiClient.analyze(type, { n });
-            analysisResult.textContent = JSON.stringify(result, null, 2);
-            analysisResult.className = 'feedback success';
-        } catch (err) {
-            analysisResult.textContent = `Eroare: ${err.message}`;
-            analysisResult.className = 'feedback error';
-        }
-    });
-
-    // 5. Actualizare info grid size
-    document.getElementById('grid-size').textContent =
-        `Grid: ${gridRenderer.gridWidth}×${gridRenderer.gridHeight}`;
+    // 4. Populare inițială automată cu presetul Conway Game of Life Randomizat
+    setTimeout(() => {
+        rulesPanel.presetGolRandom();
+    }, 100);
 
     console.log('✅ CelLab inițializat cu succes!');
 });

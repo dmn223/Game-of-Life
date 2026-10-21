@@ -1,9 +1,10 @@
 """Aplicația FastAPI principală.
 
 Servește:
-- API REST pentru parsare NLP, control simulare, analiză
+- API REST pentru control simulare
 - WebSocket pentru streaming generații în timp real
 - Fișierele statice ale interfeței web (HTML/CSS/JS)
+- Compatibilitate completă cu paths relative și absolute
 """
 
 from __future__ import annotations
@@ -22,15 +23,19 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 app = FastAPI(
     title="CelLab",
-    description="Sistem pentru simularea automatelor celulare 2D",
-    version="0.1.0",
+    description="Sistem pentru simularea automatelor celulare 2D pe suprafață infinită",
+    version="0.2.0",
 )
 
 # Înregistrare rute API
 app.include_router(api_router, prefix="/api")
 app.include_router(ws_router, prefix="/ws")
 
-# Servire fișiere statice
+# Servire fișiere statice la /static, dar și directoare individuale /css, /js pentru suport căi relative
+if (STATIC_DIR / "css").exists():
+    app.mount("/css", StaticFiles(directory=str(STATIC_DIR / "css")), name="css")
+if (STATIC_DIR / "js").exists():
+    app.mount("/js", StaticFiles(directory=str(STATIC_DIR / "js")), name="js")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
