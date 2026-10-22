@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CelLab — Simulator Automate Celulare pe Spațiu Infinit</title>
     <!-- Căi relative sigure pentru compatibilitate completă: localhost și file:// -->
-    <link rel="stylesheet" href="css/style.css?v=7">
-    <link rel="stylesheet" href="/static/css/style.css?v=7">
+    <link rel="stylesheet" href="css/style.css?v=8">
+    <link rel="stylesheet" href="/static/css/style.css?v=8">
 </head>
 <body>
     <header class="app-header">
@@ -15,9 +15,9 @@
             <span class="header-tag">Spațiu Infinit & Hashmap Cache</span>
         </div>
         <div class="quick-status">
+            <span id="hud-fps" class="status-pill fps-status-pill fps-good" title="Fluență execuție și randare (FPS)">⚡ 60 FPS</span>
             <span id="hud-coords" class="status-pill">Centru: (0, 0)</span>
             <span id="hud-zoom" class="status-pill">Zoom: 100%</span>
-            <span id="hud-fps" class="status-pill fps-status-pill fps-good" title="Fluență execuție și randare (FPS)">⚡ 60 FPS</span>
             <span id="cache-stats" class="status-pill highlight">Hashmap: 0 stări (0% hit)</span>
         </div>
     </header>
@@ -42,6 +42,20 @@
                     <span id="speed-value">10 gen/s</span>
                 </div>
 
+                <!-- Genetica Cromatică (Selector Culoare Celule) -->
+                <div class="genetics-color-box" title="Genetica culorii celulei (Moștenire părinți + mutație 1-3%)">
+                    <span class="genetics-label">🧬 Culoare:</span>
+                    <div class="genetics-palette">
+                        <button type="button" class="genetics-chip active" data-color="#00ff88" style="--chip-color: #00ff88;" title="Verde Neon"></button>
+                        <button type="button" class="genetics-chip" data-color="#00e5ff" style="--chip-color: #00e5ff;" title="Cian Electric"></button>
+                        <button type="button" class="genetics-chip" data-color="#ff007f" style="--chip-color: #ff007f;" title="Roz Magenta"></button>
+                        <button type="button" class="genetics-chip" data-color="#ffea00" style="--chip-color: #ffea00;" title="Galben Solar"></button>
+                        <button type="button" class="genetics-chip" data-color="#a855f7" style="--chip-color: #a855f7;" title="Violet Vibrant"></button>
+                        <button type="button" class="genetics-chip" data-color="#ff6b00" style="--chip-color: #ff6b00;" title="Portocaliu"></button>
+                    </div>
+                    <input type="color" id="cell-color-input" value="#00ff88" class="genetics-color-picker" title="Alege orice culoare genetică personalizată">
+                </div>
+
                 <div class="viewport-tools">
                     <button id="btn-tool-draw" class="btn-tool active" title="Mod Desenare (Click stânga desenează)">✏️ Draw</button>
                     <button id="btn-tool-pan" class="btn-tool" title="Mod Navigare (Click stânga trage harta)">✋ Pan</button>
@@ -49,7 +63,6 @@
                     <button id="btn-zoom-out" class="btn-tool" title="Micșorează (Zoom Out)">🔍−</button>
                     <button id="btn-fit-all" class="btn-tool" title="Încadrează toate celulele pe ecran (Tasta F)">🎯 Fit All</button>
                     <button id="btn-reset-view" class="btn-tool" title="Resetează vederea la origine (0,0)">⌂ Centru</button>
-                    <span id="fps-badge" class="fps-badge fps-good" title="Rată cadre pe secundă (FPS) - fluență randare și execuție">⚡ 60 FPS</span>
                 </div>
             </div>
 
@@ -237,9 +250,9 @@
     </main>
 
     <!-- Scripturi cu suport dual pentru încărcare fără eroare (file:// și localhost) -->
-    <script src="js/grid.js?v=7"></script>
-    <script src="js/controls.js?v=7"></script>
-    <script src="js/rules_panel.js?v=7"></script>
-    <script src="js/main.js?v=7"></script>
+    <script src="js/grid.js?v=8"></script>
+    <script src="js/controls.js?v=8"></script>
+    <script src="js/rules_panel.js?v=8"></script>
+    <script src="js/main.js?v=8"></script>
 </body>
 </html>

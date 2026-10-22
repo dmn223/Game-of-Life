@@ -49,7 +49,10 @@ class SimulationControls {
         this.btnZoomOut = document.getElementById('btn-zoom-out');
         this.btnResetView = document.getElementById('btn-reset-view');
         this.btnFitAll = document.getElementById('btn-fit-all');
-        this.fpsBadge = document.getElementById('fps-badge');
+
+        // Genetica Cromatică
+        this.cellColorInput = document.getElementById('cell-color-input');
+        this.geneticsChips = document.querySelectorAll('.genetics-chip');
 
         // HUD & Indicatori
         this.generationCounter = document.getElementById('generation-counter');
@@ -67,6 +70,36 @@ class SimulationControls {
         if (this.btnReset) this.btnReset.addEventListener('click', () => this.reset());
         if (this.btnRandom) this.btnRandom.addEventListener('click', () => this.randomize());
         if (this.btnClear) this.btnClear.addEventListener('click', () => this.clear());
+
+        // Selector Culoare Genetică Celule
+        if (this.geneticsChips) {
+            this.geneticsChips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const color = chip.dataset.color;
+                    this.grid.setCurrentColor(color);
+                    if (this.cellColorInput) this.cellColorInput.value = color;
+
+                    this.geneticsChips.forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                });
+            });
+        }
+
+        if (this.cellColorInput) {
+            this.cellColorInput.addEventListener('input', (e) => {
+                const color = e.target.value;
+                this.grid.setCurrentColor(color);
+                if (this.geneticsChips) {
+                    this.geneticsChips.forEach(c => {
+                        if (c.dataset.color && c.dataset.color.toLowerCase() === color.toLowerCase()) {
+                            c.classList.add('active');
+                        } else {
+                            c.classList.remove('active');
+                        }
+                    });
+                }
+            });
+        }
 
         if (this.speedSlider) {
             this.speedSlider.addEventListener('input', (e) => {
@@ -192,6 +225,52 @@ class SimulationControls {
         // Colectăm acțiuni simultane multi-țintă dacă există reguli relative cu ținte multiple
         const multiActions = new Map();
 
+        // Mutație genetică aleatorie între 1% și 3% pe fiecare canal RGB
+        const mutateChannel = (val) => {
+            const pct = 0.01 + Math.random() * 0.02; // [0.01, 0.03]
+            const sign = Math.random() < 0.5 ? -1 : 1;
+            const delta = sign * pct * 255;
+            return Math.max(0, Math.min(255, Math.round(val + delta)));
+        };
+
+        // Calculează culoarea unei celule noi: medie a celulelor vecine vii + mutație
+        const computeChildColor = (cx, cy) => {
+            let totalR = 0;
+            let totalG = 0;
+            let totalB = 0;
+            let count = 0;
+
+            for (const [dx, dy] of [
+                [-1, -1], [0, -1], [1, -1],
+                [-1,  0],          [1,  0],
+                [-1,  1], [0,  1], [1,  1]
+            ]) {
+                const parentColor = activeCells.get(`${cx + dx},${cy + dy}`);
+                if (parentColor) {
+                    totalR += (parentColor.r !== undefined ? parentColor.r : 0);
+                    totalG += (parentColor.g !== undefined ? parentColor.g : 255);
+                    totalB += (parentColor.b !== undefined ? parentColor.b : 136);
+                    count++;
+                }
+            }
+
+            if (count > 0) {
+                return {
+                    r: mutateChannel(totalR / count),
+                    g: mutateChannel(totalG / count),
+                    b: mutateChannel(totalB / count)
+                };
+            }
+
+            // Fără părinți direcți (naștere spontană): folosește culoarea curentă + mutație
+            const curr = this.grid.currentColor || { r: 0, g: 255, b: 136 };
+            return {
+                r: mutateChannel(curr.r),
+                g: mutateChannel(curr.g),
+                b: mutateChannel(curr.b)
+            };
+        };
+
         // 2. Pentru fiecare celulă candidată: verificăm în Hashmap Cache
         for (const key of candidates) {
             const sep = key.indexOf(',');
@@ -214,7 +293,12 @@ class SimulationControls {
                 this.cacheHits++;
                 const cached = this.hashmapCache.get(hash);
                 if (cached.nextState === 1) {
-                    nextCells.set(key, 1);
+                    // Dacă celula era deja vie, își păstrează culoarea genetică proprie
+                    // Dacă e o celulă NOUĂ născută, calculăm media culorilor părinților + mutație 1-3%
+                    const cellColor = activeCells.has(key)
+                        ? (activeCells.get(key) || { r: 0, g: 255, b: 136 })
+                        : computeChildColor(x, y);
+                    nextCells.set(key, cellColor);
                 }
                 // Dacă regula din cache avea acțiuni multi-țintă
                 if (cached.multiEffects && cached.multiEffects.length > 0) {
@@ -306,7 +390,10 @@ class SimulationControls {
             });
 
             if (cellNextState === 1) {
-                nextCells.set(key, 1);
+                const cellColor = activeCells.has(key)
+                    ? (activeCells.get(key) || { r: 0, g: 255, b: 136 })
+                    : computeChildColor(x, y);
+                nextCells.set(key, cellColor);
             }
         }
 
@@ -319,7 +406,15 @@ class SimulationControls {
                 else if (act === 'invert') val = 1 - val;
             }
             if (val === 1) {
-                nextCells.set(tKey, 1);
+                if (!nextCells.has(tKey)) {
+                    const sep = tKey.indexOf(',');
+                    const tx = parseInt(tKey.slice(0, sep), 10);
+                    const ty = parseInt(tKey.slice(sep + 1), 10);
+                    const cellColor = activeCells.has(tKey)
+                        ? (activeCells.get(tKey) || { r: 0, g: 255, b: 136 })
+                        : computeChildColor(tx, ty);
+                    nextCells.set(tKey, cellColor);
+                }
             } else {
                 nextCells.delete(tKey);
             }
@@ -399,21 +494,13 @@ class SimulationControls {
             this.currentFps = fps;
             const text = `⚡ ${fps} FPS`;
 
-            if (this.fpsBadge) {
-                this.fpsBadge.textContent = text;
-                this.fpsBadge.classList.remove('fps-good', 'fps-warn', 'fps-bad');
-                if (fps >= 50) this.fpsBadge.classList.add('fps-good');
-                else if (fps >= 30) this.fpsBadge.classList.add('fps-warn');
-                else this.fpsBadge.classList.add('fps-bad');
-                this.fpsBadge.title = `Fluență: ${fps} FPS (${fps >= 50 ? 'Excelent' : fps >= 30 ? 'Bun' : 'Scăzut'})`;
-            }
-
             if (this.hudFps) {
                 this.hudFps.textContent = text;
                 this.hudFps.classList.remove('fps-good', 'fps-warn', 'fps-bad');
                 if (fps >= 50) this.hudFps.classList.add('fps-good');
                 else if (fps >= 30) this.hudFps.classList.add('fps-warn');
                 else this.hudFps.classList.add('fps-bad');
+                this.hudFps.title = `Fluență: ${fps} FPS (${fps >= 50 ? 'Excelent' : fps >= 30 ? 'Bun' : 'Scăzut'})`;
             }
         };
 

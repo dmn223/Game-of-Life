@@ -34,6 +34,9 @@ class InfiniteGridRenderer {
         this.aliveColor = '#00ff88';
         this.aliveBorderColor = '#00cc6a';
 
+        // Genetica culorii active de desenare (RGB)
+        this.currentColor = { r: 0, g: 255, b: 136 }; // Verde neon implicit
+
         // Stare interacțiune
         this.isPanning = false;
         this.isDrawing = false;
@@ -103,9 +106,9 @@ class InfiniteGridRenderer {
             if (e.button === 0) {
                 this.isDrawing = true;
                 const { x, y } = this.screenToWorld(mouseX, mouseY);
-                // Dacă e deja vie, o transformăm în 0; altfel în 1
-                this.drawState = this.getCell(x, y) === 1 ? 0 : 1;
-                this.setCell(x, y, this.drawState);
+                // Dacă e deja vie, o transformăm în 0; altfel o populăm cu culoarea genetică activă
+                this.drawState = this.hasCell(x, y) ? 0 : 1;
+                this.setCell(x, y, this.drawState, this.currentColor);
                 this.render();
                 if (this.onCellChange) this.onCellChange(x, y, this.drawState);
             }
@@ -135,8 +138,9 @@ class InfiniteGridRenderer {
             if (this.isDrawing) {
                 if (mouseX >= 0 && mouseX <= rect.width && mouseY >= 0 && mouseY <= rect.height) {
                     const { x, y } = this.screenToWorld(mouseX, mouseY);
-                    if (this.getCell(x, y) !== this.drawState) {
-                        this.setCell(x, y, this.drawState);
+                    const isAlive = this.hasCell(x, y);
+                    if ((this.drawState === 1 && !isAlive) || (this.drawState === 0 && isAlive)) {
+                        this.setCell(x, y, this.drawState, this.currentColor);
                         this.render();
                         if (this.onCellChange) this.onCellChange(x, y, this.drawState);
                     }
@@ -228,16 +232,65 @@ class InfiniteGridRenderer {
     }
 
     // ==========================================
-    // Operații pe Hashmap-ul de Celule
+    // Utilitare Genetice de Culoare
     // ==========================================
-    getCell(x, y) {
-        return this.cells.get(`${x},${y}`) || 0;
+    parseColor(input) {
+        if (!input) return { r: 0, g: 255, b: 136 };
+        if (typeof input === 'object' && input.r !== undefined) {
+            return {
+                r: Math.max(0, Math.min(255, Math.round(input.r))),
+                g: Math.max(0, Math.min(255, Math.round(input.g))),
+                b: Math.max(0, Math.min(255, Math.round(input.b)))
+            };
+        }
+        if (typeof input === 'string') {
+            const hex = input.trim();
+            if (hex.startsWith('#') && hex.length === 7) {
+                return {
+                    r: parseInt(hex.slice(1, 3), 16) || 0,
+                    g: parseInt(hex.slice(3, 5), 16) || 0,
+                    b: parseInt(hex.slice(5, 7), 16) || 0
+                };
+            }
+            if (hex.startsWith('#') && hex.length === 4) {
+                return {
+                    r: parseInt(hex[1] + hex[1], 16) || 0,
+                    g: parseInt(hex[2] + hex[2], 16) || 0,
+                    b: parseInt(hex[3] + hex[3], 16) || 0
+                };
+            }
+        }
+        return { r: 0, g: 255, b: 136 };
     }
 
-    setCell(x, y, state) {
+    colorToRgb(c) {
+        if (!c || typeof c !== 'object') return 'rgb(0, 255, 136)';
+        const r = c.r !== undefined ? c.r : 0;
+        const g = c.g !== undefined ? c.g : 255;
+        const b = c.b !== undefined ? c.b : 136;
+        return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    setCurrentColor(colorInput) {
+        this.currentColor = this.parseColor(colorInput);
+    }
+
+    // ==========================================
+    // Operații pe Hashmap-ul de Celule
+    // ==========================================
+    hasCell(x, y) {
+        return this.cells.has(`${x},${y}`);
+    }
+
+    getCell(x, y) {
+        return this.cells.get(`${x},${y}`) || null;
+    }
+
+    setCell(x, y, state, color = null) {
         const key = `${x},${y}`;
         if (state === 1 || state === true) {
-            this.cells.set(key, 1);
+            const cellColor = color ? this.parseColor(color) : { ...this.currentColor };
+            this.cells.set(key, cellColor);
         } else {
             this.cells.delete(key);
         }
@@ -300,7 +353,7 @@ class InfiniteGridRenderer {
     }
 
     /**
-     * Populează aleatoriu o zonă centrată
+     * Populează aleatoriu o zonă centrată cu colonii genetice colorate
      */
     randomize(size = 50, density = 0.3) {
         this.cells.clear();
@@ -308,10 +361,30 @@ class InfiniteGridRenderer {
         const startX = Math.round(this.cameraX) - half;
         const startY = Math.round(this.cameraY) - half;
 
+        // Paletă genetică pentru colonii multiple
+        const palette = [
+            { r: 0, g: 255, b: 136 },   // Verde neon
+            { r: 0, g: 229, b: 255 },   // Cian electric
+            { r: 255, g: 0, b: 127 },   // Roz magenta
+            { r: 255, g: 234, b: 0 },   // Galben solar
+            { r: 168, g: 85, b: 247 },  // Violet vibrant
+            { r: 255, g: 107, b: 0 }    // Portocaliu
+        ];
+
         for (let r = 0; r < size; r++) {
             for (let c = 0; c < size; c++) {
                 if (Math.random() < density) {
-                    this.setCell(startX + c, startY + r, 1);
+                    // Alegem o colonie cromatică bazată pe cadrane
+                    const colIdx = (Math.floor(c / (size / 3)) + Math.floor(r / (size / 2)) * 3) % palette.length;
+                    const baseCol = palette[colIdx];
+                    // Variație genetică inițială ușoară (±3%)
+                    const delta = (Math.random() - 0.5) * 15;
+                    const cellColor = {
+                        r: Math.max(0, Math.min(255, Math.round(baseCol.r + delta))),
+                        g: Math.max(0, Math.min(255, Math.round(baseCol.g + delta))),
+                        b: Math.max(0, Math.min(255, Math.round(baseCol.b + delta)))
+                    };
+                    this.cells.set(`${startX + c},${startY + r}`, cellColor);
                 }
             }
         }
@@ -319,12 +392,16 @@ class InfiniteGridRenderer {
     }
 
     /**
-     * Încarcă o listă de celule active [[x, y], ...]
+     * Încarcă o listă de celule active [[x, y, color?], ...]
      */
     loadActiveCells(coordsList) {
         this.cells.clear();
-        for (const [x, y] of coordsList) {
-            this.setCell(x, y, 1);
+        for (const item of coordsList) {
+            if (Array.isArray(item)) {
+                this.setCell(item[0], item[1], 1, item[2] || null);
+            } else if (item && typeof item === 'object') {
+                this.setCell(item.x, item.y, 1, item.color || null);
+            }
         }
         this.fitAll();
     }
@@ -396,12 +473,11 @@ class InfiniteGridRenderer {
             }
         }
 
-        // 2. Desenează celulele active (doar cele din perimetrul vizibil)
-        ctx.fillStyle = this.aliveColor;
+        // 2. Desenează celulele active cu genetica lor cromatică (doar cele din perimetrul vizibil)
         const pad = cellSize >= 6 ? 1 : 0;
         const drawSize = Math.max(1, cellSize - pad);
 
-        for (const key of this.cells.keys()) {
+        for (const [key, colorObj] of this.cells.entries()) {
             const sep = key.indexOf(',');
             const x = parseInt(key.slice(0, sep), 10);
             const y = parseInt(key.slice(sep + 1), 10);
@@ -409,6 +485,7 @@ class InfiniteGridRenderer {
             if (x >= minWorldX && x <= maxWorldX && y >= minWorldY && y <= maxWorldY) {
                 const sx = cx + (x - this.cameraX) * cellSize;
                 const sy = cy + (y - this.cameraY) * cellSize;
+                ctx.fillStyle = this.colorToRgb(colorObj);
                 ctx.fillRect(sx, sy, drawSize, drawSize);
             }
         }

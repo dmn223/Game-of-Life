@@ -242,6 +242,72 @@ button {
     min-width: 50px;
 }
 
+/* Genetica Cromatică (Selector Culoare Celule) */
+.genetics-color-box {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.25rem 0.55rem;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.76rem;
+}
+
+.genetics-label {
+    color: var(--text-secondary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.genetics-palette {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.genetics-chip {
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background-color: var(--chip-color);
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.15s ease;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+}
+
+.genetics-chip:hover {
+    transform: scale(1.22);
+    border-color: #ffffff;
+}
+
+.genetics-chip.active {
+    border-color: #ffffff;
+    box-shadow: 0 0 8px var(--chip-color);
+    transform: scale(1.18);
+}
+
+.genetics-color-picker {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.genetics-color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.genetics-color-picker::-webkit-color-swatch {
+    border: none;
+    border-radius: 3px;
+}
+
 /* Unelte Viewport & Navigare */
 .viewport-tools {
     display: flex;

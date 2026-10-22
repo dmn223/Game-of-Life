@@ -694,3 +694,42 @@ Adăugarea unui indicator FPS lângă butonul de centru/zoom pentru a vizualiza 
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 21)
 
 ---
+
+
+### [2026-10-22 / Pasul 22] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Păstrarea indicatorului FPS exclusiv în colțul din dreapta sus și mutarea acestuia în stânga câmpului de coordonate de centru. Implementarea tranziției naturale a culorilor celulelor bazată pe moștenire genetică (utilizatorul poate plasa celule de culori diferite, iar celulele noi născute moștenesc media culorilor celulelor părinte existente, cu o mutație aleatorie între 1% și 3%).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Reorganizare Indicator FPS (`ui/static/index.html`, `controls.js`, `style.css`):**
+   - Eliminat indicatorul duplicat `#fps-badge` din bara de unelte inferioară (`.viewport-tools`).
+   - Repoziționat indicatorul `#hud-fps` în bara superioară `.quick-status` ca prim element, situat imediat în stânga câmpului `Centru: (x, y)`.
+
+2. **Sistem de Moștenire Genetică Cromatică & Mutație 1-3% (`ui/static/js/grid.js`, `controls.js`):**
+   - **Selector Culoare Desenare:** Introdus panoul `.genetics-color-box` cu o paletă de 6 culori vibrante (Verde Neon, Cian Electric, Roz Magenta, Galben Solar, Violet Vibrant, Portocaliu) și un selector colorimetric complet (`<input type="color">`).
+   - **Stocare Genetică în Hashmap:** Gridul stochează fiecare celulă vie ca obiect cromatic RGB `{r, g, b}` în loc de un simplu scalar `1`.
+   - **Calcul Moștenire Părinți:** În `executeStep()`, când o celulă nouă este adusă la viață (`cellNextState === 1` dintr-o stare anterioară moartă), aceasta colectează toți părinții vii din vecinătatea $3\times 3$ și calculează media ponderată a canalelor $(R_{avg}, G_{avg}, B_{avg})$.
+   - **Mutație Genetică Aleatorie (1% - 3%):** Fiecare canal RGB suferă o variație randomizată de $\pm(1\% \dots 3\%)$ din spectrul de culoare ($2.55 \dots 7.65$ unități RGB), creând o evoluție biologică organică.
+   - **Păstrare Linie Genetică:** Celulele supraviețuitoare își mențin culoarea intactă, permițând coloniilor distincte să interacționeze și să fuzioneze cromatic la granițe.
+   - **Presetări Multicolore:** Actualizat `randomize()` și presetările rapide (Conway, Invert, Wave, Seeds) pentru a popula gridul cu colonii genetice contrastante.
+
+3. **Stilizare & Cache-Busting (`ui/static/css/style.css`, `index.html`):**
+   - Stilizat `.genetics-color-box`, bulinele de selecție cromatică cu efect de hover/activ și color picker-ul integrat.
+   - Actualizat indexul resurselor la `?v=8` în `ui/static/index.html`.
+
+4. **Validare:**
+   - Verificare sintactică frontend cu `node -c`: 0 erori.
+   - Verificare automată teste cu `pytest`: 18 teste trecute cu succes.
+
+**Fișiere modificate:**
+- `ui/static/index.html` (mutare FPS în stânga centrului, eliminare badge unelte, adăugare genetic color box, bump v=8)
+- `ui/static/css/style.css` (stilizare componentă genetică cromatică)
+- `ui/static/js/grid.js` (stocare culori RGB per celulă, conversie culori, desenare cu genetica celulei, colonii randomizate)
+- `ui/static/js/controls.js` (calcul medie cromatică părinți + mutație 1-3%, legare selector culoare, FPS în HUD)
+- `ui/static/js/rules_panel.js` (actualizare presetări rapide cu glidere și colonii multicolore)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 22)
+
+---

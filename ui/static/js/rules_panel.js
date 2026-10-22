@@ -573,14 +573,14 @@ class RulesPanel {
             // Supă celulară centrală
             grid.randomize(60, 0.3);
 
-            // Adăugăm 3 planoare (gliders) care zboară spre exterior
-            const addGlider = (gx, gy) => {
+            // Adăugăm 3 planoare (gliders) fiecare cu o culoare genetică unică
+            const addGlider = (gx, gy, color) => {
                 const gCoords = [[1, 0], [2, 1], [0, 2], [1, 2], [2, 2]];
-                gCoords.forEach(([dx, dy]) => grid.setCell(gx + dx, gy + dy, 1));
+                gCoords.forEach(([dx, dy]) => grid.setCell(gx + dx, gy + dy, 1, color));
             };
-            addGlider(-40, -40);
-            addGlider(35, -35);
-            addGlider(-35, 35);
+            addGlider(-40, -40, '#00e5ff'); // Cian electric
+            addGlider(35, -35, '#ff007f');  // Roz magenta
+            addGlider(-35, 35, '#ffea00');  // Galben solar
 
             grid.fitAll();
             window.controls.reset();
@@ -628,13 +628,13 @@ class RulesPanel {
             const grid = window.controls.grid;
             grid.clear();
 
-            // Generăm linii și perechi orizontale randomizate
+            // Generăm linii și perechi orizontale randomizate cu culori contrastante
             for (let i = 0; i < 70; i++) {
                 const rx = Math.floor((Math.random() - 0.5) * 80);
                 const ry = Math.floor((Math.random() - 0.5) * 80);
-                grid.setCell(rx - 1, ry, 1);
-                grid.setCell(rx + 1, ry, 1);
-                if (Math.random() < 0.4) grid.setCell(rx, ry, 1);
+                grid.setCell(rx - 1, ry, 1, '#00e5ff');
+                grid.setCell(rx + 1, ry, 1, '#ff007f');
+                if (Math.random() < 0.4) grid.setCell(rx, ry, 1, '#ffea00');
             }
 
             grid.fitAll();
@@ -667,13 +667,13 @@ class RulesPanel {
             const grid = window.controls.grid;
             grid.clear();
 
-            // Generăm bariere verticale stânga de unde pornesc valurile
+            // Generăm bariere verticale stânga cu culori genetice distincte
             for (let y = -40; y <= 40; y++) {
                 if (Math.random() < 0.7) {
-                    grid.setCell(-30, y, 1);
+                    grid.setCell(-30, y, 1, '#00e5ff');
                 }
                 if (Math.random() < 0.5) {
-                    grid.setCell(-10, y, 1);
+                    grid.setCell(-10, y, 1, '#a855f7');
                 }
             }
 
@@ -712,13 +712,15 @@ class RulesPanel {
             const grid = window.controls.grid;
             grid.clear();
 
-            // Generăm clustere mici de semințe disperse
+            // Generăm clustere mici de semințe disperse cu diversitate genetică
+            const seedColors = ['#00ff88', '#00e5ff', '#ff007f', '#ffea00', '#a855f7'];
             for (let k = 0; k < 30; k++) {
                 const cx = Math.floor((Math.random() - 0.5) * 70);
                 const cy = Math.floor((Math.random() - 0.5) * 70);
-                grid.setCell(cx, cy, 1);
-                grid.setCell(cx + 1, cy, 1);
-                grid.setCell(cx, cy + 1, 1);
+                const c = seedColors[k % seedColors.length];
+                grid.setCell(cx, cy, 1, c);
+                grid.setCell(cx + 1, cy, 1, c);
+                grid.setCell(cx, cy + 1, 1, c);
             }
 
             grid.fitAll();
