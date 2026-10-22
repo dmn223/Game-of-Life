@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CelLab — Simulator Automate Celulare pe Spațiu Infinit</title>
     <!-- Căi relative sigure pentru compatibilitate completă: localhost și file:// -->
-    <link rel="stylesheet" href="css/style.css?v=6">
-    <link rel="stylesheet" href="/static/css/style.css?v=6">
+    <link rel="stylesheet" href="css/style.css?v=7">
+    <link rel="stylesheet" href="/static/css/style.css?v=7">
 </head>
 <body>
     <header class="app-header">
@@ -17,6 +17,7 @@
         <div class="quick-status">
             <span id="hud-coords" class="status-pill">Centru: (0, 0)</span>
             <span id="hud-zoom" class="status-pill">Zoom: 100%</span>
+            <span id="hud-fps" class="status-pill fps-status-pill fps-good" title="Fluență execuție și randare (FPS)">⚡ 60 FPS</span>
             <span id="cache-stats" class="status-pill highlight">Hashmap: 0 stări (0% hit)</span>
         </div>
     </header>
@@ -48,6 +49,7 @@
                     <button id="btn-zoom-out" class="btn-tool" title="Micșorează (Zoom Out)">🔍−</button>
                     <button id="btn-fit-all" class="btn-tool" title="Încadrează toate celulele pe ecran (Tasta F)">🎯 Fit All</button>
                     <button id="btn-reset-view" class="btn-tool" title="Resetează vederea la origine (0,0)">⌂ Centru</button>
+                    <span id="fps-badge" class="fps-badge fps-good" title="Rată cadre pe secundă (FPS) - fluență randare și execuție">⚡ 60 FPS</span>
                 </div>
             </div>
 
@@ -235,9 +237,9 @@
     </main>
 
     <!-- Scripturi cu suport dual pentru încărcare fără eroare (file:// și localhost) -->
-    <script src="js/grid.js?v=6"></script>
-    <script src="js/controls.js?v=6"></script>
-    <script src="js/rules_panel.js?v=6"></script>
-    <script src="js/main.js?v=6"></script>
+    <script src="js/grid.js?v=7"></script>
+    <script src="js/controls.js?v=7"></script>
+    <script src="js/rules_panel.js?v=7"></script>
+    <script src="js/main.js?v=7"></script>
 </body>
 </html>

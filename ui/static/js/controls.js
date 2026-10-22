@@ -27,6 +27,7 @@ class SimulationControls {
 
         this._bindElements();
         this._bindEvents();
+        this._initFpsMeter();
         this._updateHUD();
     }
 
@@ -48,6 +49,7 @@ class SimulationControls {
         this.btnZoomOut = document.getElementById('btn-zoom-out');
         this.btnResetView = document.getElementById('btn-reset-view');
         this.btnFitAll = document.getElementById('btn-fit-all');
+        this.fpsBadge = document.getElementById('fps-badge');
 
         // HUD & Indicatori
         this.generationCounter = document.getElementById('generation-counter');
@@ -55,6 +57,7 @@ class SimulationControls {
         this.cacheStats = document.getElementById('cache-stats');
         this.hudCoords = document.getElementById('hud-coords');
         this.hudZoom = document.getElementById('hud-zoom');
+        this.hudFps = document.getElementById('hud-fps');
     }
 
     _bindEvents() {
@@ -381,6 +384,52 @@ class SimulationControls {
         this.grid.randomize(size, density);
         this.generation = 0;
         this._updateHUD();
+    }
+
+    /**
+     * Inițializează contorul de FPS în timp real bazat pe requestAnimationFrame.
+     * Măsoară fluența randării pe ecran și starea de încărcare a simulatorului.
+     */
+    _initFpsMeter() {
+        let frameCount = 0;
+        let lastTime = performance.now();
+        this.currentFps = 60;
+
+        const updateFpsUi = (fps) => {
+            this.currentFps = fps;
+            const text = `⚡ ${fps} FPS`;
+
+            if (this.fpsBadge) {
+                this.fpsBadge.textContent = text;
+                this.fpsBadge.classList.remove('fps-good', 'fps-warn', 'fps-bad');
+                if (fps >= 50) this.fpsBadge.classList.add('fps-good');
+                else if (fps >= 30) this.fpsBadge.classList.add('fps-warn');
+                else this.fpsBadge.classList.add('fps-bad');
+                this.fpsBadge.title = `Fluență: ${fps} FPS (${fps >= 50 ? 'Excelent' : fps >= 30 ? 'Bun' : 'Scăzut'})`;
+            }
+
+            if (this.hudFps) {
+                this.hudFps.textContent = text;
+                this.hudFps.classList.remove('fps-good', 'fps-warn', 'fps-bad');
+                if (fps >= 50) this.hudFps.classList.add('fps-good');
+                else if (fps >= 30) this.hudFps.classList.add('fps-warn');
+                else this.hudFps.classList.add('fps-bad');
+            }
+        };
+
+        const fpsLoop = (timestamp) => {
+            frameCount++;
+            const elapsed = timestamp - lastTime;
+            if (elapsed >= 500) {
+                const calculatedFps = Math.round((frameCount * 1000) / elapsed);
+                updateFpsUi(calculatedFps);
+                frameCount = 0;
+                lastTime = timestamp;
+            }
+            requestAnimationFrame(fpsLoop);
+        };
+
+        requestAnimationFrame(fpsLoop);
     }
 
     _updateHUD() {

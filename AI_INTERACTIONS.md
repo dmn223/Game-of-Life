@@ -655,3 +655,42 @@ Ajustare a denumirii panoului și butonului: eliminarea textului „stil scratch
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 20)
 
 ---
+
+
+### [2026-10-22 / Pasul 21] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Adăugarea unui indicator FPS lângă butonul de centru/zoom pentru a vizualiza fluența execuției și a randării simulatorului celular.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Adăugare Indicator FPS în Bară și HUD (`ui/static/index.html`):**
+   - Introdus elementul `#fps-badge` în bara de unelte de navigare (`.viewport-tools`), amplasat imediat lângă butoanele de Zoom (`🔍+`, `🔍−`), Încadrare (`🎯 Fit All`) și Centrare (`⌂ Centru`).
+   - Adăugat elementul `#hud-fps` în bara superioară de status (`.quick-status`), alături de coordonatele de centru și nivelul de zoom.
+
+2. **Implementare Monitor FPS în Timp Real (`ui/static/js/controls.js`):**
+   - Creat metoda `_initFpsMeter()` care măsoară cadrele pe secundă folosind bucla `requestAnimationFrame` și `performance.now()`.
+   - Implementat calcul cu eșantionare la 500ms pentru a oferi valori precise, stabile și fără fluctuații haotice.
+   - Adăugat suport de feedback cromatic pe baza ratei de cadre:
+     - 🟢 **Verde (`fps-good`, $\ge 50$ FPS):** Execuție fluidă, performanță optimă.
+     - 🟡 **Galben / Portocaliu (`fps-warn`, $30 - 49$ FPS):** Fluență medie.
+     - 🔴 **Roșu (`fps-bad`, $< 30$ FPS):** Încărcare ridicată sau căderi de cadre.
+   - Adăugat tooltip informativ la hover cu detalii privind calitatea execuției.
+
+3. **Stilizare Vizuală (`ui/static/css/style.css`):**
+   - Stilizat insigna `.fps-badge` cu font mono, colțuri rotunjite, margini luminoase și tranziții colorimetrice fluide.
+   - Aliniat flexbox pentru `.viewport-tools`.
+   - Actualizat versiunea resurselor statice la `?v=7` în `ui/static/index.html` pentru cache-busting imediat.
+
+4. **Validare & Teste:**
+   - Verificată sintaxa JavaScript cu `node -c` pe fișierele frontend: 0 erori.
+   - Verificată suita de teste cu `pytest`: 18 teste trecute cu succes.
+
+**Fișiere modificate:**
+- `ui/static/index.html` (adăugare `#fps-badge` lângă butoanele de zoom/centru și `#hud-fps`, bump cache v=7)
+- `ui/static/js/controls.js` (implementare `_initFpsMeter()` cu `requestAnimationFrame` și clase cromatice)
+- `ui/static/css/style.css` (stilizare `.fps-badge`, `.fps-status-pill` și stări `fps-good`, `fps-warn`, `fps-bad`)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 21)
+
+---

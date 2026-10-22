@@ -94,6 +94,32 @@ body {
     background-color: rgba(139, 92, 246, 0.1);
 }
 
+.status-pill.fps-status-pill {
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.status-pill.fps-good,
+.fps-badge.fps-good {
+    color: #00ff88;
+    border-color: rgba(0, 255, 136, 0.4);
+    background-color: rgba(0, 255, 136, 0.1);
+}
+
+.status-pill.fps-warn,
+.fps-badge.fps-warn {
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.4);
+    background-color: rgba(251, 191, 36, 0.1);
+}
+
+.status-pill.fps-bad,
+.fps-badge.fps-bad {
+    color: #ff4757;
+    border-color: rgba(255, 71, 87, 0.4);
+    background-color: rgba(255, 71, 87, 0.1);
+}
+
 /* ===== Layout Principal ===== */
 .app-layout {
     display: flex;
@@ -219,6 +245,7 @@ button {
 /* Unelte Viewport & Navigare */
 .viewport-tools {
     display: flex;
+    align-items: center;
     gap: 0.25rem;
 }
 
@@ -240,6 +267,25 @@ button {
     border-color: var(--accent-purple);
     color: #c4b5fd;
     font-weight: 700;
+}
+
+.fps-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 0.32rem 0.55rem;
+    border-radius: var(--radius-sm);
+    margin-left: 0.35rem;
+    white-space: nowrap;
+    user-select: none;
+    border: 1px solid rgba(0, 255, 136, 0.35);
+    background: rgba(0, 255, 136, 0.1);
+    color: #00ff88;
+    transition: all 0.25s ease;
+    cursor: default;
 }
 
 /* Canvas Wrapper */
