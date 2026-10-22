@@ -524,3 +524,36 @@ Cerere de salvare și sincronizare a conversației curente pe depozitul GitHub (
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 16)
 
 ---
+
+### [2026-10-22 / Pasul 17] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Clarificare privind modul de introducere a regulilor în formatul prestabilit (sintaxă, structură și opțiuni admise) și explicarea motivului pentru care celulele continuau să evolueze chiar și atunci când lista `<reguli active>` era goală.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Detalierea Formatului Prestabilit de Reguli (`[x,y] : DACA ... ATUNCI ...`):**
+   - Documentat în detaliu formatul formal prestabilit și componentele sale:
+     - **Antet celulă:** `[x,y]` (oricare), `[x,y]=1` (doar dacă e vie), `[x,y]=0` (doar dacă e moartă).
+     - **Condiții vecini:** coordonate relative `[x+dx, y+dy]=stare` (ex: `[x-1,y]=1`, `[x,y-1]=0`) separate prin virgulă (AND logic).
+     - **Acțiuni / Efecte:** `[x+dx, y+dy] -> actiune` (`1`, `0`, `invers`, `keep`), cu suport pentru ținte multiple simultan.
+     - Exemple concrete practice de reguli și delimitatori alternativi acceptați (`DACA/IF`, `ATUNCI/THEN/=>`).
+
+2. **Explicație & Corectare Comportament Listă Goală (`ui/static/js/controls.js`, `rules_panel.js`):**
+   - **Cauza inițială:** În Pasul 13 s-a introdus un mecanism de siguranță (fallback automat) la Conway's Game of Life (B3/S23) pentru a preveni erori la prima deschidere când nu existau reguli. Drept urmare, chiar dacă utilizatorul apăsa „Șterge tot”, motorul apela automat regulile clasice Conway în culise.
+   - **Corecție:** S-a modificat `getActiveRules()` din `controls.js` astfel încât, dacă utilizatorul a șters lista de reguli (`rules.length === 0`), simulatorul să returneze o listă goală și să **nu mai execute nicio regulă ascunsă**. Astfel, când nu există reguli active, la Play celulele rămân complet neschimbate.
+   - Dacă utilizatorul dorește regulile clasice Conway, acestea se pot încărca explicit și vizibil prin presetarea `🧬 Conway's Game of Life`.
+   - Mesajele informative din interfață și placeholder-ul au fost actualizate pentru transparență totală.
+
+3. **Validare & Testare:**
+   - Testat comportamentul cu listă goală (celulele rămân statice).
+   - Testat adăugarea de reguli noi în formatul prestabilit.
+   - Rulat suita pytest: 18 teste trecute cu succes.
+
+**Fișiere modificate:**
+- `ui/static/js/controls.js` (eliminare fallback silențios la lista goală)
+- `ui/static/js/rules_panel.js` (actualizare mesaje informative la golire reguli)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 17)
+
+---

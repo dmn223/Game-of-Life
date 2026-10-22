@@ -83,7 +83,7 @@ class RulesPanel {
             this.btnClearRules.addEventListener('click', () => {
                 this.rules = [];
                 this._onRulesUpdated();
-                this._showFeedback('Toate regulile au fost șterse.', 'warning');
+                this._showFeedback('Toate regulile au fost șterse. (Fără reguli active, celulele rămân neschimbate la Play)', 'warning');
             });
         }
     }
@@ -241,7 +241,7 @@ class RulesPanel {
         }
 
         if (this.rules.length === 0) {
-            this.activeRulesList.innerHTML = '<p class="placeholder">Nicio regulă activă. Alegeți o presetare randomizată sau adăugați una mai sus.</p>';
+            this.activeRulesList.innerHTML = '<p class="placeholder">Nicio regulă activă. Celulele rămân neschimbate la rulare. Alegeți o presetare randomizată sau adăugați o regulă mai sus.</p>';
             return;
         }
 

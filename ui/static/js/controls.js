@@ -131,42 +131,14 @@ class SimulationControls {
     }
 
     /**
-     * Returnează regulile active din RulesPanel sau regulile implicite Conway
+     * Returnează regulile active din RulesPanel.
+     * Dacă utilizatorul a șters toate regulile, returnează lista goală (fără reguli ascunse).
      */
     getActiveRules() {
-        if (window.rulesPanel && Array.isArray(window.rulesPanel.rules) && window.rulesPanel.rules.length > 0) {
+        if (window.rulesPanel && Array.isArray(window.rulesPanel.rules)) {
             return window.rulesPanel.rules;
         }
-        return [
-            {
-                name: 'GoL: Supraviețuire',
-                current_state: 1,
-                count_conditions: [{ state: 1, min_count: 2, max_count: 3 }],
-                effects: [{ dx: 0, dy: 0, action: 'set_1' }],
-                enabled: true,
-            },
-            {
-                name: 'GoL: Naștere',
-                current_state: 0,
-                count_conditions: [{ state: 1, min_count: 3, max_count: 3 }],
-                effects: [{ dx: 0, dy: 0, action: 'set_1' }],
-                enabled: true,
-            },
-            {
-                name: 'GoL: Subpopulare',
-                current_state: 1,
-                count_conditions: [{ state: 1, min_count: 0, max_count: 1 }],
-                effects: [{ dx: 0, dy: 0, action: 'set_0' }],
-                enabled: true,
-            },
-            {
-                name: 'GoL: Suprapopulare',
-                current_state: 1,
-                count_conditions: [{ state: 1, min_count: 4, max_count: 8 }],
-                effects: [{ dx: 0, dy: 0, action: 'set_0' }],
-                enabled: true,
-            },
-        ];
+        return [];
     }
 
     /**
@@ -186,7 +158,7 @@ class SimulationControls {
         const rules = this.getActiveRules();
         const activeCells = this.grid.cells;
 
-        if (activeCells.size === 0) {
+        if (activeCells.size === 0 || rules.length === 0) {
             this.generation += 1;
             this._updateHUD();
             return;
