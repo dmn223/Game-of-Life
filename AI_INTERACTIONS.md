@@ -557,3 +557,31 @@ Clarificare privind modul de introducere a regulilor în formatul prestabilit (s
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 17)
 
 ---
+
+### [2026-10-22 / Pasul 18] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Semnalare că celulele continuau să se modifice chiar dacă regulile erau șterse, cu cerința expresă ca după ștergerea regulilor celulele să rămână într-o stare 100% stabilă (nemodificată).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Garantare Stare Stabilă la Ștergerea Regulilor (`ui/static/js/controls.js`):**
+   - **Cauza identificată:** Când se executau pași de simulare, algoritmul verifica dacă `rules.length === 0`, dar dacă existau intrări rămase în cache-ul Hashmap sau dacă regulile erau filtrate/dezactivate, acestea puteau continua să producă tranziții de stare.
+   - **Rezolvare completă:**
+     - În `executeStep()`, se extrag regulile efectiv activate: `const enabledRules = rules.filter(r => r.enabled !== false)`.
+     - Dacă `enabledRules.length === 0`, funcția **returnează imediat fără a accesa Hashmap-ul și fără a modifica vreo celulă**. Buclele de calcul și mutațiile pe grid sunt complet scurtcircuitate.
+     - Grid-ul rămâne în starea sa exactă curentă (stare 100% stabilă/înghețată).
+     - Indicatorul de stare din HUD afișează explicit: `Stare: Stabilă (0 reguli)`.
+   - Adăugat cache-buster (`?v=4`) în `ui/static/index.html` pentru a preveni rularea de către browser a unor versiuni cache-uite ale scripturilor JavaScript.
+
+2. **Validare & Testare:**
+   - Testat comportamentul la ștergerea tuturor regulilor: celulele de pe ecran rămân complet nemișcate și stabile la Play / Step.
+   - Rulat suita pytest: 18 teste trecute cu succes.
+
+**Fișiere modificate:**
+- `ui/static/js/controls.js` (scurtcircuitare completă dacă nu sunt reguli active, indicator HUD stare stabilă)
+- `ui/static/index.html` (cache-busting v=4 pe fișierele script)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 18)
+
+---

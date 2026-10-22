@@ -156,9 +156,12 @@ class SimulationControls {
      */
     executeStep() {
         const rules = this.getActiveRules();
+        const enabledRules = rules.filter(r => r.enabled !== false);
         const activeCells = this.grid.cells;
 
-        if (activeCells.size === 0 || rules.length === 0) {
+        // Dacă nu există reguli active, starea este 100% STABILĂ:
+        // Nu se modifică nicio celulă, gridul rămâne neschimbat!
+        if (activeCells.size === 0 || enabledRules.length === 0) {
             this.generation += 1;
             this._updateHUD();
             return;
@@ -237,9 +240,7 @@ class SimulationControls {
             let matchedAny = false;
             let multiEffects = [];
 
-            for (const rule of rules) {
-                if (rule.enabled === false) continue;
-
+            for (const rule of enabledRules) {
                 // Verificare stare curentă
                 const reqState = rule.current_state !== undefined ? rule.current_state : -1;
                 if (reqState !== -1 && currVal !== reqState) continue;
@@ -387,10 +388,17 @@ class SimulationControls {
         if (this.generationCounter) this.generationCounter.textContent = `Gen: ${this.generation}`;
         if (this.cellCount) this.cellCount.textContent = `Vii: ${count}`;
 
-        const totalQueries = this.cacheHits + this.cacheMisses;
-        const hitRate = totalQueries > 0 ? Math.round((this.cacheHits / totalQueries) * 100) : 0;
+        const rules = this.getActiveRules();
+        const enabledCount = rules.filter(r => r.enabled !== false).length;
+
         if (this.cacheStats) {
-            this.cacheStats.textContent = `Hashmap: ${this.hashmapCache.size} stări (${hitRate}% hit)`;
+            if (enabledCount === 0) {
+                this.cacheStats.textContent = 'Stare: Stabilă (0 reguli)';
+            } else {
+                const totalQueries = this.cacheHits + this.cacheMisses;
+                const hitRate = totalQueries > 0 ? Math.round((this.cacheHits / totalQueries) * 100) : 0;
+                this.cacheStats.textContent = `Hashmap: ${this.hashmapCache.size} stări (${hitRate}% hit)`;
+            }
         }
     }
 }
