@@ -585,3 +585,43 @@ Semnalare că celulele continuau să se modifice chiar dacă regulile erau șter
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 18)
 
 ---
+
+
+### [2026-10-22 / Pasul 19] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Cerere de eliminare a butonului/rândului `<sau rapid...>` (considerat neutil) și înlocuirea acestuia cu un buton care deschide un panou intitulat „Constructor de Reguli”, inspirat din modul vizual de asamblare a algoritmilor în Scratch (blocuri interactive de condiții și acțiuni simultane).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Eliminare Dropdown Asistent Rapid (`<sau rapid...>`):**
+   - Eliminat elementul HTML `#quick-builder-row` din `ui/static/index.html`.
+   - Curățat metoda învechită `_addQuickRule()` din `ui/static/js/rules_panel.js` și referințele CSS asociate din `ui/static/css/style.css`.
+
+2. **Implementare „Constructor de Reguli (Stil Scratch)” (`ui/static/index.html`, `rules_panel.js`):**
+   - Introdus butonul atractiv `🧩 Constructor de Reguli (Stil Scratch)` (`#btn-toggle-scratch`) pentru afișarea/ascunderea intuitivă a panoului.
+   - Creat panoul `#scratch-builder-panel` structurat după paradigma blocurilor Scratch:
+     - 🔶 **Bloc Eveniment / Antet Celulă (Portocaliu):** Selectează starea celulei evaluate: `[x,y]` oricare (*), `[x,y]=1` (doar vie), `[x,y]=0` (doar moartă).
+     - 🟩 **Bloc Sensing / Condiții Vecini (Verde):** Structură C-Block cu listă dinamică de condiții de vecinătate (`[x-1,y]`, `[x+1,y]`, `[x,y-1]`, `[x,y+1]`, diagonale) egale cu starea `1` sau `0`, buton de adăugare și butoane `✕` de eliminare.
+     - 🟦 **Bloc Motion / Acțiuni Simultane (Albastru):** Structură C-Block ce permite definirea acțiunilor simultane pe câmpul central `[x,y]` sau pe oricare vecin: `1` (aprinde), `0` (stinge), `invers` (toggle), `mentine` (keep).
+     - 🟪 **Bloc Looks / Previzualizare Cod (Mov):** Generare automată și în timp real a șirului conform formatului prestabilit al simulatorului (`[x,y] : DACA ... ATUNCI ...`).
+     - 🚀 **Buton „Salvează & Adaugă în Simulator” (`#btn-scratch-apply-rule`):** Compilează blocurile și le injectează direct în lista de reguli active.
+     - 📋 **Buton „Copiază în Text” (`#btn-scratch-copy-input`):** Transferă codul generat în câmpul de text pentru editare sau vizualizare rapidă.
+
+3. **Stilizare Vizuală Scratch (`ui/static/css/style.css`):**
+   - Definit stiluri specifice blocurilor Scratch (umbră de relief, colțuri rotunjite, indentare C-block, culori oficiale Scratch: Amber, Emerald, Cobalt, Violet).
+   - Dropdown-uri cu aspect de "reporter chips" integrate în blocuri.
+   - Actualizat versiunea resurselor statice (`?v=5`) în `ui/static/index.html` pentru a asigura încărcarea imediată a noilor componente fără reținere în memoria cache a browserului.
+
+4. **Validare:**
+   - Verificare sintactică completă cu `node -c` pe scripturile frontend.
+   - Verificare automată a suitei de teste cu `pytest` (18 teste trecute).
+
+**Fișiere modificate:**
+- `ui/static/index.html` (înlocuire dropdown rapid cu buton toggle și panou complet Scratch, bump cache v=5)
+- `ui/static/js/rules_panel.js` (implementare management dinamic blocuri Scratch, generare cod live, aplicare reguli)
+- `ui/static/css/style.css` (eliminare stiluri vechi qb-row, adăugare stiluri tematice Scratch blocks)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 19)
+
+---
