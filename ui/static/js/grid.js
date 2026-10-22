@@ -102,13 +102,33 @@ class InfiniteGridRenderer {
                 return;
             }
 
-            // Click stânga: desenare celulă
+            // Click stânga: desenare / recolorare celulă
             if (e.button === 0) {
                 this.isDrawing = true;
                 const { x, y } = this.screenToWorld(mouseX, mouseY);
-                // Dacă e deja vie, o transformăm în 0; altfel o populăm cu culoarea genetică activă
-                this.drawState = this.hasCell(x, y) ? 0 : 1;
-                this.setCell(x, y, this.drawState, this.currentColor);
+                const existingColor = this.getCell(x, y);
+
+                if (existingColor) {
+                    // Dacă celula vie are deja exact aceeași culoare, o ștergem (toggle off)
+                    const isSame = (
+                        existingColor.r === this.currentColor.r &&
+                        existingColor.g === this.currentColor.g &&
+                        existingColor.b === this.currentColor.b
+                    );
+                    if (isSame) {
+                        this.drawState = 0;
+                        this.setCell(x, y, 0);
+                    } else {
+                        // Are o culoare diferită: o recolorăm în culoarea genetică selectată!
+                        this.drawState = 1;
+                        this.setCell(x, y, 1, this.currentColor);
+                    }
+                } else {
+                    // Celulă moartă: o populăm cu noua culoare genetică
+                    this.drawState = 1;
+                    this.setCell(x, y, 1, this.currentColor);
+                }
+
                 this.render();
                 if (this.onCellChange) this.onCellChange(x, y, this.drawState);
             }
@@ -138,11 +158,24 @@ class InfiniteGridRenderer {
             if (this.isDrawing) {
                 if (mouseX >= 0 && mouseX <= rect.width && mouseY >= 0 && mouseY <= rect.height) {
                     const { x, y } = this.screenToWorld(mouseX, mouseY);
-                    const isAlive = this.hasCell(x, y);
-                    if ((this.drawState === 1 && !isAlive) || (this.drawState === 0 && isAlive)) {
-                        this.setCell(x, y, this.drawState, this.currentColor);
-                        this.render();
-                        if (this.onCellChange) this.onCellChange(x, y, this.drawState);
+                    if (this.drawState === 1) {
+                        const existingColor = this.getCell(x, y);
+                        const isSame = existingColor && (
+                            existingColor.r === this.currentColor.r &&
+                            existingColor.g === this.currentColor.g &&
+                            existingColor.b === this.currentColor.b
+                        );
+                        if (!isSame) {
+                            this.setCell(x, y, 1, this.currentColor);
+                            this.render();
+                            if (this.onCellChange) this.onCellChange(x, y, 1);
+                        }
+                    } else {
+                        if (this.hasCell(x, y)) {
+                            this.setCell(x, y, 0);
+                            this.render();
+                            if (this.onCellChange) this.onCellChange(x, y, 0);
+                        }
                     }
                 }
             }
@@ -238,25 +271,35 @@ class InfiniteGridRenderer {
         if (!input) return { r: 0, g: 255, b: 136 };
         if (typeof input === 'object' && input.r !== undefined) {
             return {
-                r: Math.max(0, Math.min(255, Math.round(input.r))),
-                g: Math.max(0, Math.min(255, Math.round(input.g))),
-                b: Math.max(0, Math.min(255, Math.round(input.b)))
+                r: Math.max(0, Math.min(255, Math.round(Number(input.r) || 0))),
+                g: Math.max(0, Math.min(255, Math.round(Number(input.g) || 0))),
+                b: Math.max(0, Math.min(255, Math.round(Number(input.b) || 0)))
             };
         }
         if (typeof input === 'string') {
-            const hex = input.trim();
-            if (hex.startsWith('#') && hex.length === 7) {
-                return {
-                    r: parseInt(hex.slice(1, 3), 16) || 0,
-                    g: parseInt(hex.slice(3, 5), 16) || 0,
-                    b: parseInt(hex.slice(5, 7), 16) || 0
-                };
+            const s = input.trim();
+            if (s.startsWith('#')) {
+                if (s.length === 7) {
+                    return {
+                        r: parseInt(s.slice(1, 3), 16) || 0,
+                        g: parseInt(s.slice(3, 5), 16) || 0,
+                        b: parseInt(s.slice(5, 7), 16) || 0
+                    };
+                }
+                if (s.length === 4) {
+                    return {
+                        r: parseInt(s[1] + s[1], 16) || 0,
+                        g: parseInt(s[2] + s[2], 16) || 0,
+                        b: parseInt(s[3] + s[3], 16) || 0
+                    };
+                }
             }
-            if (hex.startsWith('#') && hex.length === 4) {
+            const match = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+            if (match) {
                 return {
-                    r: parseInt(hex[1] + hex[1], 16) || 0,
-                    g: parseInt(hex[2] + hex[2], 16) || 0,
-                    b: parseInt(hex[3] + hex[3], 16) || 0
+                    r: Math.max(0, Math.min(255, parseInt(match[1], 10) || 0)),
+                    g: Math.max(0, Math.min(255, parseInt(match[2], 10) || 0)),
+                    b: Math.max(0, Math.min(255, parseInt(match[3], 10) || 0))
                 };
             }
         }
@@ -271,8 +314,25 @@ class InfiniteGridRenderer {
         return `rgb(${r}, ${g}, ${b})`;
     }
 
+    rgbToHex(c) {
+        if (!c) return '#00ff88';
+        const r = c.r !== undefined ? c.r : 0;
+        const g = c.g !== undefined ? c.g : 255;
+        const b = c.b !== undefined ? c.b : 136;
+        const hx = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+        return `#${hx(r)}${hx(g)}${hx(b)}`;
+    }
+
     setCurrentColor(colorInput) {
         this.currentColor = this.parseColor(colorInput);
+    }
+
+    recolorAll(colorInput) {
+        const rgb = this.parseColor(colorInput);
+        for (const [key] of this.cells.entries()) {
+            this.cells.set(key, { ...rgb });
+        }
+        this.render();
     }
 
     // ==========================================

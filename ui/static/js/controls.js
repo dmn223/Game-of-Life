@@ -52,7 +52,9 @@ class SimulationControls {
 
         // Genetica Cromatică
         this.cellColorInput = document.getElementById('cell-color-input');
+        this.customColorPreview = document.getElementById('custom-color-preview');
         this.geneticsChips = document.querySelectorAll('.genetics-chip');
+        this.btnRecolorAll = document.getElementById('btn-recolor-all');
 
         // HUD & Indicatori
         this.generationCounter = document.getElementById('generation-counter');
@@ -71,32 +73,55 @@ class SimulationControls {
         if (this.btnRandom) this.btnRandom.addEventListener('click', () => this.randomize());
         if (this.btnClear) this.btnClear.addEventListener('click', () => this.clear());
 
-        // Selector Culoare Genetică Celule
+        // Metodă unificată pentru selectarea și aplicarea culorii active
+        const updateActiveColor = (hexOrRgb) => {
+            const parsed = this.grid.parseColor(hexOrRgb);
+            this.grid.setCurrentColor(parsed);
+            const hex = this.grid.rgbToHex(parsed);
+
+            if (this.cellColorInput) this.cellColorInput.value = hex;
+            if (this.customColorPreview) this.customColorPreview.style.backgroundColor = hex;
+
+            if (this.geneticsChips) {
+                this.geneticsChips.forEach(c => {
+                    const chipHex = c.dataset.color ? c.dataset.color.toLowerCase() : '';
+                    if (chipHex === hex.toLowerCase()) {
+                        c.classList.add('active');
+                    } else {
+                        c.classList.remove('active');
+                    }
+                });
+            }
+        };
+
+        // Selector Culoare Genetică Celule (Chip-uri)
         if (this.geneticsChips) {
             this.geneticsChips.forEach(chip => {
-                chip.addEventListener('click', () => {
+                chip.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     const color = chip.dataset.color;
-                    this.grid.setCurrentColor(color);
-                    if (this.cellColorInput) this.cellColorInput.value = color;
-
-                    this.geneticsChips.forEach(c => c.classList.remove('active'));
-                    chip.classList.add('active');
+                    updateActiveColor(color);
                 });
             });
         }
 
+        // Color picker nativ (atât pe evenimentul 'input' cât și pe 'change')
         if (this.cellColorInput) {
-            this.cellColorInput.addEventListener('input', (e) => {
+            const handleColorChange = (e) => {
                 const color = e.target.value;
-                this.grid.setCurrentColor(color);
-                if (this.geneticsChips) {
-                    this.geneticsChips.forEach(c => {
-                        if (c.dataset.color && c.dataset.color.toLowerCase() === color.toLowerCase()) {
-                            c.classList.add('active');
-                        } else {
-                            c.classList.remove('active');
-                        }
-                    });
+                updateActiveColor(color);
+            };
+            this.cellColorInput.addEventListener('input', handleColorChange);
+            this.cellColorInput.addEventListener('change', handleColorChange);
+        }
+
+        // Buton Recolorare Toate Celulele Vii de pe ecran
+        if (this.btnRecolorAll) {
+            this.btnRecolorAll.addEventListener('click', () => {
+                this.grid.recolorAll(this.grid.currentColor);
+                if (window.rulesPanel) {
+                    window.rulesPanel._showFeedback('🎨 Toate celulele vii au fost colorate în noua nuanță!', 'success');
                 }
             });
         }

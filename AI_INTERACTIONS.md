@@ -733,3 +733,37 @@ Păstrarea indicatorului FPS exclusiv în colțul din dreapta sus și mutarea ac
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 22)
 
 ---
+
+### [2026-10-22 / Pasul 23] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Probleme la selectarea culorii celulelor: nu se poate schimba culoarea și selecția personalizată din color picker nu se aplică.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Reparare Selecție Culoare & Color Picker (`ui/static/index.html`, `style.css`, `controls.js`):**
+   - **Compatibilitate Evenimente Color Picker:** Adăugat ascultător pentru ambele evenimente, `'input'` și `'change'`, pe selectorul nativ `<input type="color">`. În browser-ele moderne pe Windows/Chromium/Firefox, confirmarea din fereastra modală de culoare transmite uneori doar evenimentul `change`.
+   - **Indicator Vizual Culoare Personalizată:** Înlocuit stilul invizibil al color picker-ului cu o structură hibridă: un indicator de previzualizare `#custom-color-preview` peste care se suprapune transparent inputul nativ. Indicatorul își actualizează fundalul instantaneu la orice selecție (chip sau color picker).
+   - **Stiluri Directe pe Chip-urile Genetice:** Înlocuite variabilele CSS `--chip-color` cu stiluri inline directe (`style="background-color: #00ff88;"` etc.) pentru a preveni comportamentul neuniform la citirea proprietăților CSS în canvas.
+   - **Funcție Unificată `updateActiveColor(hexOrRgb)`:** Sincronizează într-un singur punct `grid.setCurrentColor()`, valoarea din inputul colorimetric, stilul previzualizării `#custom-color-preview` și conturul luminos `.active` al chip-urilor predefinite.
+
+2. **Comportament Desenare și Recolorare pe Canvas (`ui/static/js/grid.js`):**
+   - **Recolorare la Click:** Dacă utilizatorul dă click pe o celulă vie existentă care are o culoare diferită de culoarea curent selectată, celula este recolorată în loc să fie ștearsă. Dacă celula are deja aceeași culoare, acționează ca toggle (se șterge).
+   - **Recolorare la Drag:** Când se ține apăsat mouse-ul și se glisează peste celule existente de culori diferite, acestea sunt recolorate la noua culoare activă (pictură intuitivă peste colonii).
+   - **Buton Recolorare Totală:** Adăugat butonul `🎨 Aplică pe tot` (`#btn-recolor-all`) care recolorează instant toate celulele vii de pe ecran cu culoarea activă selectată.
+   - **Parser Cromatic Extins:** Suport adăugat în `parseColor` pentru formate `#RRGGBB`, `#RGB`, `rgb(...)`, `rgba(...)` și obiecte `{r, g, b}`.
+
+3. **Cache-Busting & Teste:**
+   - Resursele din `ui/static/index.html` au fost actualizate la versiunea `?v=9`.
+   - Verificare automată sintaxă JS cu `node -c`: validare 100%.
+   - Rulare suită automată `pytest`: 18 teste trecute cu succes.
+
+**Fișiere modificate:**
+- `ui/static/index.html` (DOM preview culoare personalizată, buton recolorare totală, stiluri inline chip-uri, bump v=9)
+- `ui/static/css/style.css` (stilizare selector personalizat, preview cromatic, buton recolorare)
+- `ui/static/js/grid.js` (recolorare celule la click/drag, rgbToHex, recolorAll, parser extins)
+- `ui/static/js/controls.js` (updateActiveColor unificat, listener dual input/change, handler recolorAll)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 23)
+
+---
