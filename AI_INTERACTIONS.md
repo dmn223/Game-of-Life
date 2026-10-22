@@ -625,3 +625,33 @@ Cerere de eliminare a butonului/rândului `<sau rapid...>` (considerat neutil) �
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 19)
 
 ---
+
+
+### [2026-10-22 / Pasul 20] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Ajustare a denumirii panoului și butonului: eliminarea textului „stil scratch” și păstrarea exclusivă a titulaturii „Constructor de Reguli”.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Actualizare Nomenclatură UI (`ui/static/index.html`):**
+   - Schimbat textul butonului de deschidere în: `🧩 Constructor de Reguli`.
+   - Schimbat titlul panoului în: `🧩 Constructor de Reguli`.
+   - Simplificate textele butoanelor de adăugare la `➕ Adaugă Condiție Vecin` și `➕ Adaugă Acțiune`.
+
+2. **Actualizare Mesaje și Nume Reguli (`ui/static/js/rules_panel.js`):**
+   - Schimbat șablonul numelui implicit al regulilor generate în `Regulă #${idx}`.
+   - Curățat mesajul de feedback pentru aplicarea regulilor.
+
+3. **Cache-Busting & Teste:**
+   - Actualizat indexul versiunii la `?v=6` în `ui/static/index.html`.
+   - Verificată sintaxa JavaScript cu `node -c` (0 erori).
+   - Rulat `pytest`: 18 teste trecute cu succes.
+
+**Fișiere modificate:**
+- `ui/static/index.html` (eliminare „Stil Scratch” din etichete și titlu, bump cache v=6)
+- `ui/static/js/rules_panel.js` (redenumire șablon reguli generate și feedback)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 20)
+
+---

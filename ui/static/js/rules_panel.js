@@ -448,10 +448,10 @@ class RulesPanel {
             return;
         }
 
-        parsed.name = `Regulă Scratch #${this.rules.length + 1}`;
+        parsed.name = `Regulă #${this.rules.length + 1}`;
         this.rules.push(parsed);
         this._onRulesUpdated();
-        this._showFeedback(`✅ Regula Scratch "${parsed.name}" a fost adăugată și activată!`, 'success');
+        this._showFeedback(`✅ Regula "${parsed.name}" a fost adăugată și activată!`, 'success');
     }
 
     _onRulesUpdated() {
