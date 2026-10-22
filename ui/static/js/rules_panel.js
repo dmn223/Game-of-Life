@@ -10,8 +10,21 @@ class RulesPanel {
         this.rules = [];
         window.rulesPanel = this;
 
+        // Stare internă pentru Constructorul de Reguli în stil Scratch
+        this.scratchBlocks = {
+            centerState: -1,
+            conditions: [
+                { dx: -1, dy: 0, state: 1 },
+                { dx: 1, dy: 0, state: 1 }
+            ],
+            actions: [
+                { dx: 0, dy: 0, action: 'invert' }
+            ]
+        };
+
         this._bindElements();
         this._bindEvents();
+        this._initScratchBuilder();
         this._loadDefaultGoL(false);
     }
 
@@ -21,10 +34,18 @@ class RulesPanel {
         this.btnAddFormatRule = document.getElementById('btn-add-format-rule');
         this.formatTemplateChips = document.querySelectorAll('.btn-format-chip');
 
-        // Constructor rapid cu butoane
-        this.quickCondSelect = document.getElementById('quick-cond-select');
-        this.quickActionSelect = document.getElementById('quick-action-select');
-        this.btnBuildQuickRule = document.getElementById('btn-build-quick-rule');
+        // Constructor de reguli în stil Scratch
+        this.btnToggleScratch = document.getElementById('btn-toggle-scratch');
+        this.scratchBuilderPanel = document.getElementById('scratch-builder-panel');
+        this.btnCloseScratch = document.getElementById('btn-close-scratch');
+        this.scratchCenterState = document.getElementById('scratch-center-state');
+        this.scratchConditionsList = document.getElementById('scratch-conditions-list');
+        this.btnScratchAddCond = document.getElementById('btn-scratch-add-cond');
+        this.scratchActionsList = document.getElementById('scratch-actions-list');
+        this.btnScratchAddAction = document.getElementById('btn-scratch-add-action');
+        this.scratchCodePreview = document.getElementById('scratch-code-preview');
+        this.btnScratchApplyRule = document.getElementById('btn-scratch-apply-rule');
+        this.btnScratchCopyInput = document.getElementById('btn-scratch-copy-input');
 
         // Presetări rapide randomizate
         this.btnPresetGolRandom = document.getElementById('btn-preset-gol-random');
@@ -56,9 +77,58 @@ class RulesPanel {
             this.btnAddFormatRule.addEventListener('click', () => this._addRuleFromFormatInput());
         }
 
-        // Adăugare regulă prin constructorul rapid
-        if (this.btnBuildQuickRule) {
-            this.btnBuildQuickRule.addEventListener('click', () => this._addQuickRule());
+        // Deschidere / Închidere Constructor Scratch
+        if (this.btnToggleScratch) {
+            this.btnToggleScratch.addEventListener('click', () => {
+                if (this.scratchBuilderPanel) {
+                    this.scratchBuilderPanel.classList.toggle('hidden');
+                    if (!this.scratchBuilderPanel.classList.contains('hidden')) {
+                        this._updateScratchPreview();
+                    }
+                }
+            });
+        }
+        if (this.btnCloseScratch) {
+            this.btnCloseScratch.addEventListener('click', () => {
+                if (this.scratchBuilderPanel) {
+                    this.scratchBuilderPanel.classList.add('hidden');
+                }
+            });
+        }
+
+        // Evenimente blocuri Scratch
+        if (this.scratchCenterState) {
+            this.scratchCenterState.addEventListener('change', (e) => {
+                this.scratchBlocks.centerState = parseInt(e.target.value, 10);
+                this._updateScratchPreview();
+            });
+        }
+        if (this.btnScratchAddCond) {
+            this.btnScratchAddCond.addEventListener('click', () => {
+                this.scratchBlocks.conditions.push({ dx: 0, dy: -1, state: 1 });
+                this._renderScratchConditions();
+                this._updateScratchPreview();
+            });
+        }
+        if (this.btnScratchAddAction) {
+            this.btnScratchAddAction.addEventListener('click', () => {
+                this.scratchBlocks.actions.push({ dx: 1, dy: 0, action: 'set_0' });
+                this._renderScratchActions();
+                this._updateScratchPreview();
+            });
+        }
+        if (this.btnScratchApplyRule) {
+            this.btnScratchApplyRule.addEventListener('click', () => this._applyScratchRule());
+        }
+        if (this.btnScratchCopyInput) {
+            this.btnScratchCopyInput.addEventListener('click', () => {
+                const code = this._getScratchCode();
+                if (this.ruleFormatInput) {
+                    this.ruleFormatInput.value = code;
+                    this.ruleFormatInput.focus();
+                    this._showFeedback('📋 Regula generată a fost copiată în câmpul text!', 'success');
+                }
+            });
         }
 
         // Presetări Rapide Randomizate (1-Click)
@@ -83,7 +153,7 @@ class RulesPanel {
             this.btnClearRules.addEventListener('click', () => {
                 this.rules = [];
                 this._onRulesUpdated();
-                this._showFeedback('Toate regulile au fost șterse.', 'warning');
+                this._showFeedback('Toate regulile au fost șterse. (Fără reguli active, celulele rămân neschimbate la Play)', 'warning');
             });
         }
     }
@@ -182,47 +252,206 @@ class RulesPanel {
         if (this.ruleFormatInput) this.ruleFormatInput.value = '';
     }
 
-    _addQuickRule() {
-        const condType = this.quickCondSelect ? this.quickCondSelect.value : 'horiz';
-        const actionType = this.quickActionSelect ? this.quickActionSelect.value : 'set_1';
+    _initScratchBuilder() {
+        this._renderScratchConditions();
+        this._renderScratchActions();
+        this._updateScratchPreview();
+    }
 
-        let patternConds = [];
-        let name = '';
-        let formatText = '';
+    _formatCoord(dx, dy) {
+        if (dx === 0 && dy === 0) return '[x,y]';
+        const xStr = dx > 0 ? `x+${dx}` : (dx < 0 ? `x${dx}` : 'x');
+        const yStr = dy > 0 ? `y+${dy}` : (dy < 0 ? `y${dy}` : 'y');
+        return `[${xStr},${yStr}]`;
+    }
 
-        if (condType === 'horiz') {
-            patternConds = [{ dx: -1, dy: 0, state: 1 }, { dx: 1, dy: 0, state: 1 }];
-            name = 'Vecini orizontali [x-1,y] & [x+1,y] = 1';
-            formatText = `[x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> ${actionType === 'set_1' ? '1' : (actionType === 'set_0' ? '0' : 'invers')}`;
-        } else if (condType === 'vert') {
-            patternConds = [{ dx: 0, dy: -1, state: 1 }, { dx: 0, dy: 1, state: 1 }];
-            name = 'Vecini verticali [x,y-1] & [x,y+1] = 1';
-            formatText = `[x,y] : DACA [x,y-1]=1, [x,y+1]=1 ATUNCI [x,y] -> ${actionType === 'set_1' ? '1' : (actionType === 'set_0' ? '0' : 'invers')}`;
-        } else if (condType === 'left') {
-            patternConds = [{ dx: -1, dy: 0, state: 1 }];
-            name = 'Vecin stânga [x-1,y] = 1';
-            formatText = `[x,y] : DACA [x-1,y]=1 ATUNCI [x,y] -> ${actionType === 'set_1' ? '1' : '0'}`;
-        } else if (condType === 'cross') {
-            patternConds = [
-                { dx: 0, dy: -1, state: 1 }, { dx: 0, dy: 1, state: 1 },
-                { dx: -1, dy: 0, state: 1 }, { dx: 1, dy: 0, state: 1 }
-            ];
-            name = 'Cruce (+) toți 4 vecini = 1';
-            formatText = `[x,y] : DACA [x,y-1]=1, [x,y+1]=1, [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> ${actionType === 'set_1' ? '1' : '0'}`;
+    _renderScratchConditions() {
+        if (!this.scratchConditionsList) return;
+        if (this.scratchBlocks.conditions.length === 0) {
+            this.scratchConditionsList.innerHTML = '<div class="scratch-empty-note">Nicio condiție de vecinătate (se aplică necondiționat).</div>';
+            return;
         }
 
-        const newRule = {
-            name: name,
-            description: formatText,
-            current_state: -1,
-            pattern_conditions: patternConds,
-            effects: [{ dx: 0, dy: 0, action: actionType }],
-            enabled: true,
-        };
+        const coordOptions = [
+            { val: '-1,0', label: '[x-1, y] (Stânga)' },
+            { val: '1,0', label: '[x+1, y] (Dreapta)' },
+            { val: '0,-1', label: '[x, y-1] (Sus)' },
+            { val: '0,1', label: '[x, y+1] (Jos)' },
+            { val: '-1,-1', label: '[x-1, y-1] (Stânga-Sus)' },
+            { val: '1,-1', label: '[x+1, y-1] (Dreapta-Sus)' },
+            { val: '-1,1', label: '[x-1, y+1] (Stânga-Jos)' },
+            { val: '1,1', label: '[x+1, y+1] (Dreapta-Jos)' }
+        ];
 
-        this.rules.push(newRule);
+        let html = '';
+        this.scratchBlocks.conditions.forEach((cond, idx) => {
+            const currentVal = `${cond.dx},${cond.dy}`;
+            const optsHtml = coordOptions.map(opt =>
+                `<option value="${opt.val}" ${opt.val === currentVal ? 'selected' : ''}>${opt.label}</option>`
+            ).join('');
+
+            html += `
+                <div class="scratch-mini-block scratch-mini-cond">
+                    <span class="scratch-mini-label">Vecin:</span>
+                    <select class="scratch-mini-select scratch-cond-coord" data-idx="${idx}">
+                        ${optsHtml}
+                    </select>
+                    <span class="scratch-op">=</span>
+                    <select class="scratch-mini-select scratch-cond-state" data-idx="${idx}">
+                        <option value="1" ${cond.state === 1 ? 'selected' : ''}>1 (Vie)</option>
+                        <option value="0" ${cond.state === 0 ? 'selected' : ''}>0 (Moartă)</option>
+                    </select>
+                    <button type="button" class="scratch-btn-del-mini scratch-cond-del" data-idx="${idx}" title="Elimină condiție">✕</button>
+                </div>
+            `;
+        });
+
+        this.scratchConditionsList.innerHTML = html;
+
+        // Atașare evenimente
+        this.scratchConditionsList.querySelectorAll('.scratch-cond-coord').forEach(sel => {
+            sel.addEventListener('change', (e) => {
+                const i = parseInt(e.target.dataset.idx, 10);
+                const [dx, dy] = e.target.value.split(',').map(Number);
+                this.scratchBlocks.conditions[i].dx = dx;
+                this.scratchBlocks.conditions[i].dy = dy;
+                this._updateScratchPreview();
+            });
+        });
+
+        this.scratchConditionsList.querySelectorAll('.scratch-cond-state').forEach(sel => {
+            sel.addEventListener('change', (e) => {
+                const i = parseInt(e.target.dataset.idx, 10);
+                this.scratchBlocks.conditions[i].state = parseInt(e.target.value, 10);
+                this._updateScratchPreview();
+            });
+        });
+
+        this.scratchConditionsList.querySelectorAll('.scratch-cond-del').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const i = parseInt(e.currentTarget.dataset.idx, 10);
+                this.scratchBlocks.conditions.splice(i, 1);
+                this._renderScratchConditions();
+                this._updateScratchPreview();
+            });
+        });
+    }
+
+    _renderScratchActions() {
+        if (!this.scratchActionsList) return;
+        if (this.scratchBlocks.actions.length === 0) {
+            this.scratchActionsList.innerHTML = '<div class="scratch-empty-note">Nicio acțiune definită.</div>';
+            return;
+        }
+
+        const targetOptions = [
+            { val: '0,0', label: '[x, y] (Celula Curentă)' },
+            { val: '-1,0', label: '[x-1, y] (Stânga)' },
+            { val: '1,0', label: '[x+1, y] (Dreapta)' },
+            { val: '0,-1', label: '[x, y-1] (Sus)' },
+            { val: '0,1', label: '[x, y+1] (Jos)' },
+            { val: '-1,-1', label: '[x-1, y-1] (Stânga-Sus)' },
+            { val: '1,-1', label: '[x+1, y-1] (Dreapta-Sus)' },
+            { val: '-1,1', label: '[x-1, y+1] (Stânga-Jos)' },
+            { val: '1,1', label: '[x+1, y+1] (Dreapta-Jos)' }
+        ];
+
+        let html = '';
+        this.scratchBlocks.actions.forEach((act, idx) => {
+            const currentVal = `${act.dx},${act.dy}`;
+            const optsHtml = targetOptions.map(opt =>
+                `<option value="${opt.val}" ${opt.val === currentVal ? 'selected' : ''}>${opt.label}</option>`
+            ).join('');
+
+            html += `
+                <div class="scratch-mini-block scratch-mini-action">
+                    <span class="scratch-mini-label">Câmp:</span>
+                    <select class="scratch-mini-select scratch-action-coord" data-idx="${idx}">
+                        ${optsHtml}
+                    </select>
+                    <span class="scratch-op">➔</span>
+                    <select class="scratch-mini-select scratch-action-type" data-idx="${idx}">
+                        <option value="set_1" ${act.action === 'set_1' ? 'selected' : ''}>1 (Aprinde / Vie)</option>
+                        <option value="set_0" ${act.action === 'set_0' ? 'selected' : ''}>0 (Stinge / Moartă)</option>
+                        <option value="invert" ${act.action === 'invert' ? 'selected' : ''}>invers (Toggle)</option>
+                        <option value="keep" ${act.action === 'keep' ? 'selected' : ''}>mentine (Neschimbat)</option>
+                    </select>
+                    <button type="button" class="scratch-btn-del-mini scratch-action-del" data-idx="${idx}" title="Elimină acțiune">✕</button>
+                </div>
+            `;
+        });
+
+        this.scratchActionsList.innerHTML = html;
+
+        // Atașare evenimente
+        this.scratchActionsList.querySelectorAll('.scratch-action-coord').forEach(sel => {
+            sel.addEventListener('change', (e) => {
+                const i = parseInt(e.target.dataset.idx, 10);
+                const [dx, dy] = e.target.value.split(',').map(Number);
+                this.scratchBlocks.actions[i].dx = dx;
+                this.scratchBlocks.actions[i].dy = dy;
+                this._updateScratchPreview();
+            });
+        });
+
+        this.scratchActionsList.querySelectorAll('.scratch-action-type').forEach(sel => {
+            sel.addEventListener('change', (e) => {
+                const i = parseInt(e.target.dataset.idx, 10);
+                this.scratchBlocks.actions[i].action = e.target.value;
+                this._updateScratchPreview();
+            });
+        });
+
+        this.scratchActionsList.querySelectorAll('.scratch-action-del').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const i = parseInt(e.currentTarget.dataset.idx, 10);
+                this.scratchBlocks.actions.splice(i, 1);
+                this._renderScratchActions();
+                this._updateScratchPreview();
+            });
+        });
+    }
+
+    _getScratchCode() {
+        let header = '[x,y]';
+        if (this.scratchBlocks.centerState === 1) header = '[x,y]=1';
+        else if (this.scratchBlocks.centerState === 0) header = '[x,y]=0';
+
+        const condStrs = this.scratchBlocks.conditions.map(c => {
+            return `${this._formatCoord(c.dx, c.dy)}=${c.state}`;
+        });
+        const condPart = condStrs.length > 0 ? condStrs.join(', ') : '[x-1,y]=1';
+
+        const actStrs = this.scratchBlocks.actions.map(a => {
+            let actWord = '1';
+            if (a.action === 'set_0') actWord = '0';
+            else if (a.action === 'invert') actWord = 'invers';
+            else if (a.action === 'keep') actWord = 'mentine';
+            return `${this._formatCoord(a.dx, a.dy)} -> ${actWord}`;
+        });
+        const actPart = actStrs.length > 0 ? actStrs.join(', ') : '[x,y] -> 1';
+
+        return `${header} : DACA ${condPart} ATUNCI ${actPart}`;
+    }
+
+    _updateScratchPreview() {
+        if (this.scratchCodePreview) {
+            this.scratchCodePreview.textContent = this._getScratchCode();
+        }
+    }
+
+    _applyScratchRule() {
+        const code = this._getScratchCode();
+        const parsed = this.parsePredefinedRule(code);
+        if (!parsed) {
+            this._showFeedback('Formatul generat este invalid.', 'error');
+            return;
+        }
+
+        parsed.name = `Regulă #${this.rules.length + 1}`;
+        this.rules.push(parsed);
         this._onRulesUpdated();
-        this._showFeedback('✅ Regulă adăugată din asistent!', 'success');
+        this._showFeedback(`✅ Regula "${parsed.name}" a fost adăugată și activată!`, 'success');
     }
 
     _onRulesUpdated() {
@@ -241,7 +470,7 @@ class RulesPanel {
         }
 
         if (this.rules.length === 0) {
-            this.activeRulesList.innerHTML = '<p class="placeholder">Nicio regulă activă. Alegeți o presetare randomizată sau adăugați una mai sus.</p>';
+            this.activeRulesList.innerHTML = '<p class="placeholder">Nicio regulă activă. Celulele rămân neschimbate la rulare. Alegeți o presetare randomizată sau adăugați o regulă mai sus.</p>';
             return;
         }
 

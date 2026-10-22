@@ -524,3 +524,134 @@ Cerere de salvare și sincronizare a conversației curente pe depozitul GitHub (
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 16)
 
 ---
+
+### [2026-10-22 / Pasul 17] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Clarificare privind modul de introducere a regulilor în formatul prestabilit (sintaxă, structură și opțiuni admise) și explicarea motivului pentru care celulele continuau să evolueze chiar și atunci când lista `<reguli active>` era goală.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Detalierea Formatului Prestabilit de Reguli (`[x,y] : DACA ... ATUNCI ...`):**
+   - Documentat în detaliu formatul formal prestabilit și componentele sale:
+     - **Antet celulă:** `[x,y]` (oricare), `[x,y]=1` (doar dacă e vie), `[x,y]=0` (doar dacă e moartă).
+     - **Condiții vecini:** coordonate relative `[x+dx, y+dy]=stare` (ex: `[x-1,y]=1`, `[x,y-1]=0`) separate prin virgulă (AND logic).
+     - **Acțiuni / Efecte:** `[x+dx, y+dy] -> actiune` (`1`, `0`, `invers`, `keep`), cu suport pentru ținte multiple simultan.
+     - Exemple concrete practice de reguli și delimitatori alternativi acceptați (`DACA/IF`, `ATUNCI/THEN/=>`).
+
+2. **Explicație & Corectare Comportament Listă Goală (`ui/static/js/controls.js`, `rules_panel.js`):**
+   - **Cauza inițială:** În Pasul 13 s-a introdus un mecanism de siguranță (fallback automat) la Conway's Game of Life (B3/S23) pentru a preveni erori la prima deschidere când nu existau reguli. Drept urmare, chiar dacă utilizatorul apăsa „Șterge tot”, motorul apela automat regulile clasice Conway în culise.
+   - **Corecție:** S-a modificat `getActiveRules()` din `controls.js` astfel încât, dacă utilizatorul a șters lista de reguli (`rules.length === 0`), simulatorul să returneze o listă goală și să **nu mai execute nicio regulă ascunsă**. Astfel, când nu există reguli active, la Play celulele rămân complet neschimbate.
+   - Dacă utilizatorul dorește regulile clasice Conway, acestea se pot încărca explicit și vizibil prin presetarea `🧬 Conway's Game of Life`.
+   - Mesajele informative din interfață și placeholder-ul au fost actualizate pentru transparență totală.
+
+3. **Validare & Testare:**
+   - Testat comportamentul cu listă goală (celulele rămân statice).
+   - Testat adăugarea de reguli noi în formatul prestabilit.
+   - Rulat suita pytest: 18 teste trecute cu succes.
+
+**Fișiere modificate:**
+- `ui/static/js/controls.js` (eliminare fallback silențios la lista goală)
+- `ui/static/js/rules_panel.js` (actualizare mesaje informative la golire reguli)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 17)
+
+---
+
+### [2026-10-22 / Pasul 18] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Semnalare că celulele continuau să se modifice chiar dacă regulile erau șterse, cu cerința expresă ca după ștergerea regulilor celulele să rămână într-o stare 100% stabilă (nemodificată).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Garantare Stare Stabilă la Ștergerea Regulilor (`ui/static/js/controls.js`):**
+   - **Cauza identificată:** Când se executau pași de simulare, algoritmul verifica dacă `rules.length === 0`, dar dacă existau intrări rămase în cache-ul Hashmap sau dacă regulile erau filtrate/dezactivate, acestea puteau continua să producă tranziții de stare.
+   - **Rezolvare completă:**
+     - În `executeStep()`, se extrag regulile efectiv activate: `const enabledRules = rules.filter(r => r.enabled !== false)`.
+     - Dacă `enabledRules.length === 0`, funcția **returnează imediat fără a accesa Hashmap-ul și fără a modifica vreo celulă**. Buclele de calcul și mutațiile pe grid sunt complet scurtcircuitate.
+     - Grid-ul rămâne în starea sa exactă curentă (stare 100% stabilă/înghețată).
+     - Indicatorul de stare din HUD afișează explicit: `Stare: Stabilă (0 reguli)`.
+   - Adăugat cache-buster (`?v=4`) în `ui/static/index.html` pentru a preveni rularea de către browser a unor versiuni cache-uite ale scripturilor JavaScript.
+
+2. **Validare & Testare:**
+   - Testat comportamentul la ștergerea tuturor regulilor: celulele de pe ecran rămân complet nemișcate și stabile la Play / Step.
+   - Rulat suita pytest: 18 teste trecute cu succes.
+
+**Fișiere modificate:**
+- `ui/static/js/controls.js` (scurtcircuitare completă dacă nu sunt reguli active, indicator HUD stare stabilă)
+- `ui/static/index.html` (cache-busting v=4 pe fișierele script)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 18)
+
+---
+
+
+### [2026-10-22 / Pasul 19] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Cerere de eliminare a butonului/rândului `<sau rapid...>` (considerat neutil) și înlocuirea acestuia cu un buton care deschide un panou intitulat „Constructor de Reguli”, inspirat din modul vizual de asamblare a algoritmilor în Scratch (blocuri interactive de condiții și acțiuni simultane).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Eliminare Dropdown Asistent Rapid (`<sau rapid...>`):**
+   - Eliminat elementul HTML `#quick-builder-row` din `ui/static/index.html`.
+   - Curățat metoda învechită `_addQuickRule()` din `ui/static/js/rules_panel.js` și referințele CSS asociate din `ui/static/css/style.css`.
+
+2. **Implementare „Constructor de Reguli (Stil Scratch)” (`ui/static/index.html`, `rules_panel.js`):**
+   - Introdus butonul atractiv `🧩 Constructor de Reguli (Stil Scratch)` (`#btn-toggle-scratch`) pentru afișarea/ascunderea intuitivă a panoului.
+   - Creat panoul `#scratch-builder-panel` structurat după paradigma blocurilor Scratch:
+     - 🔶 **Bloc Eveniment / Antet Celulă (Portocaliu):** Selectează starea celulei evaluate: `[x,y]` oricare (*), `[x,y]=1` (doar vie), `[x,y]=0` (doar moartă).
+     - 🟩 **Bloc Sensing / Condiții Vecini (Verde):** Structură C-Block cu listă dinamică de condiții de vecinătate (`[x-1,y]`, `[x+1,y]`, `[x,y-1]`, `[x,y+1]`, diagonale) egale cu starea `1` sau `0`, buton de adăugare și butoane `✕` de eliminare.
+     - 🟦 **Bloc Motion / Acțiuni Simultane (Albastru):** Structură C-Block ce permite definirea acțiunilor simultane pe câmpul central `[x,y]` sau pe oricare vecin: `1` (aprinde), `0` (stinge), `invers` (toggle), `mentine` (keep).
+     - 🟪 **Bloc Looks / Previzualizare Cod (Mov):** Generare automată și în timp real a șirului conform formatului prestabilit al simulatorului (`[x,y] : DACA ... ATUNCI ...`).
+     - 🚀 **Buton „Salvează & Adaugă în Simulator” (`#btn-scratch-apply-rule`):** Compilează blocurile și le injectează direct în lista de reguli active.
+     - 📋 **Buton „Copiază în Text” (`#btn-scratch-copy-input`):** Transferă codul generat în câmpul de text pentru editare sau vizualizare rapidă.
+
+3. **Stilizare Vizuală Scratch (`ui/static/css/style.css`):**
+   - Definit stiluri specifice blocurilor Scratch (umbră de relief, colțuri rotunjite, indentare C-block, culori oficiale Scratch: Amber, Emerald, Cobalt, Violet).
+   - Dropdown-uri cu aspect de "reporter chips" integrate în blocuri.
+   - Actualizat versiunea resurselor statice (`?v=5`) în `ui/static/index.html` pentru a asigura încărcarea imediată a noilor componente fără reținere în memoria cache a browserului.
+
+4. **Validare:**
+   - Verificare sintactică completă cu `node -c` pe scripturile frontend.
+   - Verificare automată a suitei de teste cu `pytest` (18 teste trecute).
+
+**Fișiere modificate:**
+- `ui/static/index.html` (înlocuire dropdown rapid cu buton toggle și panou complet Scratch, bump cache v=5)
+- `ui/static/js/rules_panel.js` (implementare management dinamic blocuri Scratch, generare cod live, aplicare reguli)
+- `ui/static/css/style.css` (eliminare stiluri vechi qb-row, adăugare stiluri tematice Scratch blocks)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 19)
+
+---
+
+
+### [2026-10-22 / Pasul 20] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Ajustare a denumirii panoului și butonului: eliminarea textului „stil scratch” și păstrarea exclusivă a titulaturii „Constructor de Reguli”.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Actualizare Nomenclatură UI (`ui/static/index.html`):**
+   - Schimbat textul butonului de deschidere în: `🧩 Constructor de Reguli`.
+   - Schimbat titlul panoului în: `🧩 Constructor de Reguli`.
+   - Simplificate textele butoanelor de adăugare la `➕ Adaugă Condiție Vecin` și `➕ Adaugă Acțiune`.
+
+2. **Actualizare Mesaje și Nume Reguli (`ui/static/js/rules_panel.js`):**
+   - Schimbat șablonul numelui implicit al regulilor generate în `Regulă #${idx}`.
+   - Curățat mesajul de feedback pentru aplicarea regulilor.
+
+3. **Cache-Busting & Teste:**
+   - Actualizat indexul versiunii la `?v=6` în `ui/static/index.html`.
+   - Verificată sintaxa JavaScript cu `node -c` (0 erori).
+   - Rulat `pytest`: 18 teste trecute cu succes.
+
+**Fișiere modificate:**
+- `ui/static/index.html` (eliminare „Stil Scratch” din etichete și titlu, bump cache v=6)
+- `ui/static/js/rules_panel.js` (redenumire șablon reguli generate și feedback)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 20)
+
+---

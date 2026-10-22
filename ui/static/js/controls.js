@@ -131,42 +131,14 @@ class SimulationControls {
     }
 
     /**
-     * Returnează regulile active din RulesPanel sau regulile implicite Conway
+     * Returnează regulile active din RulesPanel.
+     * Dacă utilizatorul a șters toate regulile, returnează lista goală (fără reguli ascunse).
      */
     getActiveRules() {
-        if (window.rulesPanel && Array.isArray(window.rulesPanel.rules) && window.rulesPanel.rules.length > 0) {
+        if (window.rulesPanel && Array.isArray(window.rulesPanel.rules)) {
             return window.rulesPanel.rules;
         }
-        return [
-            {
-                name: 'GoL: Supraviețuire',
-                current_state: 1,
-                count_conditions: [{ state: 1, min_count: 2, max_count: 3 }],
-                effects: [{ dx: 0, dy: 0, action: 'set_1' }],
-                enabled: true,
-            },
-            {
-                name: 'GoL: Naștere',
-                current_state: 0,
-                count_conditions: [{ state: 1, min_count: 3, max_count: 3 }],
-                effects: [{ dx: 0, dy: 0, action: 'set_1' }],
-                enabled: true,
-            },
-            {
-                name: 'GoL: Subpopulare',
-                current_state: 1,
-                count_conditions: [{ state: 1, min_count: 0, max_count: 1 }],
-                effects: [{ dx: 0, dy: 0, action: 'set_0' }],
-                enabled: true,
-            },
-            {
-                name: 'GoL: Suprapopulare',
-                current_state: 1,
-                count_conditions: [{ state: 1, min_count: 4, max_count: 8 }],
-                effects: [{ dx: 0, dy: 0, action: 'set_0' }],
-                enabled: true,
-            },
-        ];
+        return [];
     }
 
     /**
@@ -184,9 +156,12 @@ class SimulationControls {
      */
     executeStep() {
         const rules = this.getActiveRules();
+        const enabledRules = rules.filter(r => r.enabled !== false);
         const activeCells = this.grid.cells;
 
-        if (activeCells.size === 0) {
+        // Dacă nu există reguli active, starea este 100% STABILĂ:
+        // Nu se modifică nicio celulă, gridul rămâne neschimbat!
+        if (activeCells.size === 0 || enabledRules.length === 0) {
             this.generation += 1;
             this._updateHUD();
             return;
@@ -265,9 +240,7 @@ class SimulationControls {
             let matchedAny = false;
             let multiEffects = [];
 
-            for (const rule of rules) {
-                if (rule.enabled === false) continue;
-
+            for (const rule of enabledRules) {
                 // Verificare stare curentă
                 const reqState = rule.current_state !== undefined ? rule.current_state : -1;
                 if (reqState !== -1 && currVal !== reqState) continue;
@@ -415,10 +388,17 @@ class SimulationControls {
         if (this.generationCounter) this.generationCounter.textContent = `Gen: ${this.generation}`;
         if (this.cellCount) this.cellCount.textContent = `Vii: ${count}`;
 
-        const totalQueries = this.cacheHits + this.cacheMisses;
-        const hitRate = totalQueries > 0 ? Math.round((this.cacheHits / totalQueries) * 100) : 0;
+        const rules = this.getActiveRules();
+        const enabledCount = rules.filter(r => r.enabled !== false).length;
+
         if (this.cacheStats) {
-            this.cacheStats.textContent = `Hashmap: ${this.hashmapCache.size} stări (${hitRate}% hit)`;
+            if (enabledCount === 0) {
+                this.cacheStats.textContent = 'Stare: Stabilă (0 reguli)';
+            } else {
+                const totalQueries = this.cacheHits + this.cacheMisses;
+                const hitRate = totalQueries > 0 ? Math.round((this.cacheHits / totalQueries) * 100) : 0;
+                this.cacheStats.textContent = `Hashmap: ${this.hashmapCache.size} stări (${hitRate}% hit)`;
+            }
         }
     }
 }
