@@ -6,7 +6,9 @@ pe baza specificației formale (CellularAutomatonSpec).
 
 from __future__ import annotations
 
-from typing import Optional
+import json
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -86,11 +88,61 @@ class Simulator:
         self.generation = 0
         self.history.clear()
 
-    def get_state_as_dict(self) -> dict:
-        """Returnează starea curentă ca dicționar serializabil."""
+    def get_state_as_dict(self) -> dict[str, Any]:
+        """Returnează checkpoint complet, serializabil în JSON."""
         return {
+            "spec": self.spec.model_dump(mode="json"),
             "generation": self.generation,
             "grid": self.grid.cells.tolist(),
             "width": self.spec.grid.width,
             "height": self.spec.grid.height,
         }
+
+    @classmethod
+    def from_state_dict(
+        cls, state: dict[str, Any], keep_history: bool = False
+    ) -> "Simulator":
+        """Reface un simulator dintr-un checkpoint produs de get_state_as_dict."""
+        if "spec" not in state:
+            raise ValueError("Checkpoint-ul nu conține specificația automatului")
+
+        spec = CellularAutomatonSpec.model_validate(state["spec"])
+        simulator = cls(spec, keep_history=keep_history)
+        generation = state.get("generation")
+        if not isinstance(generation, int) or generation < 0:
+            raise ValueError("generation trebuie să fie un întreg nenegativ")
+
+        cells = np.asarray(state.get("grid"))
+        expected_shape = (spec.grid.height, spec.grid.width)
+        if cells.shape != expected_shape:
+            raise ValueError(
+                f"Dimensiunea gridului {cells.shape} nu corespunde {expected_shape}"
+            )
+        if not np.issubdtype(cells.dtype, np.integer):
+            raise ValueError("Gridul checkpoint-ului trebuie să conțină indici întregi")
+        if np.any(cells < 0) or np.any(cells >= len(spec.states)):
+            raise ValueError("Gridul checkpoint-ului conține indici de stare invalizi")
+
+        simulator.grid.cells = cells.astype(np.int8, copy=True)
+        simulator.generation = generation
+        return simulator
+
+    def save_checkpoint(self, path: str | Path) -> None:
+        """Salvează specificația, generația și gridul curent într-un fișier JSON."""
+        Path(path).write_text(
+            json.dumps(self.get_state_as_dict(), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    @classmethod
+    def load_checkpoint(
+        cls, path: str | Path, keep_history: bool = False
+    ) -> "Simulator":
+        """Încarcă un simulator dintr-un checkpoint JSON."""
+        try:
+            state = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"Nu s-a putut citi checkpoint-ul: {exc}") from exc
+        if not isinstance(state, dict):
+            raise ValueError("Checkpoint-ul JSON trebuie să fie un obiect")
+        return cls.from_state_dict(state, keep_history=keep_history)

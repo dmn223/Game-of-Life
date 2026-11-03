@@ -1,0 +1,17 @@
+{
+  "name": "Brian's Brain",
+  "description": "Un automat cu stările off, on și refractory.",
+  "states": [
+    {"name": "off", "color": "#1a1a2e", "symbol": "."},
+    {"name": "on", "color": "#00e5ff", "symbol": "O"},
+    {"name": "refractory", "color": "#ff007f", "symbol": "+"}
+  ],
+  "default_state": "off",
+  "neighborhood": "moore",
+  "transitions": [
+    {"from_state": "off", "to_state": "on", "neighbor_state": "on", "min_count": 2, "max_count": 2},
+    {"from_state": "on", "to_state": "refractory", "neighbor_state": "on", "min_count": 0, "max_count": 8},
+    {"from_state": "refractory", "to_state": "off", "neighbor_state": "on", "min_count": 0, "max_count": 8}
+  ],
+  "grid": {"width": 25, "height": 25, "boundary": "wrap"}
+}

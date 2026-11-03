@@ -1,0 +1,15 @@
+{
+  "name": "Seeds (B2/S)",
+  "description": "Celulele moarte devin vii cu exact doi vecini vii; celulele vii mor în generația următoare.",
+  "states": [
+    {"name": "dead", "color": "#1a1a2e", "symbol": "."},
+    {"name": "alive", "color": "#00ff88", "symbol": "O"}
+  ],
+  "default_state": "dead",
+  "neighborhood": "moore",
+  "transitions": [
+    {"from_state": "dead", "to_state": "alive", "neighbor_state": "alive", "min_count": 2, "max_count": 2},
+    {"from_state": "alive", "to_state": "dead", "neighbor_state": "alive", "min_count": 0, "max_count": 8}
+  ],
+  "grid": {"width": 25, "height": 25, "boundary": "wrap"}
+}

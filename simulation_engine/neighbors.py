@@ -52,9 +52,26 @@ class NeighborCalculator:
             Dicționar {state_name: matrice_counts} cu numărul de vecini
             în fiecare stare pentru fiecare celulă.
         """
-        # TODO: Implementare cu scipy.signal.convolve2d
-        # pentru eficiență (convoluție vectorizată)
-        # Trebuie gestionată condiția la margini (boundary)
-        raise NotImplementedError(
-            "NeighborCalculator.count_neighbors() — de implementat"
-        )
+        boundary_modes = {
+            BoundaryCondition.DEAD: "fill",
+            BoundaryCondition.WRAP: "wrap",
+            BoundaryCondition.MIRROR: "symm",
+        }
+        mode = boundary_modes[self.spec.grid.boundary]
+        default_idx = self.spec.get_state_index(self.spec.default_state)
+        counts: dict[str, np.ndarray] = {}
+
+        for state_idx, state in enumerate(self.spec.states):
+            state_mask = (cells == state_idx).astype(np.int8)
+            # La marginea unui grid DEAD, celulele din afara gridului sunt
+            # considerate în starea implicită.
+            fill_value = int(state_idx == default_idx)
+            counts[state.name] = signal.convolve2d(
+                state_mask,
+                self.kernel,
+                mode="same",
+                boundary=mode,
+                fillvalue=fill_value,
+            ).astype(np.int16)
+
+        return counts

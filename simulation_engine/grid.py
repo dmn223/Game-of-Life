@@ -6,6 +6,8 @@ indexul numeric al stării sale (conform ordinii din spec.states).
 
 from __future__ import annotations
 
+from typing import Optional
+
 import numpy as np
 
 from models.spec import CellularAutomatonSpec
@@ -61,18 +63,25 @@ class Grid:
         state_idx = self.cells[row, col]
         return self.spec.states[state_idx].name
 
-    def randomize(self, density: float = 0.3) -> None:
+    def randomize(
+        self, density: float = 0.3, seed: Optional[int] = None
+    ) -> None:
         """Populează gridul aleatoriu.
 
         Args:
             density: Probabilitatea ca o celulă să fie în prima stare non-default.
+            seed: Sămânță opțională pentru reproducerea configurației aleatoare.
         """
+        if not 0.0 <= density <= 1.0:
+            raise ValueError("density trebuie să fie între 0 și 1")
         default_idx = self.spec.get_state_index(self.spec.default_state)
         # Găsește prima stare non-default
         non_default_idx = next(
             i for i in range(len(self.spec.states)) if i != default_idx
         )
-        random_mask = np.random.random((self.height, self.width)) < density
+        random_mask = np.random.default_rng(seed).random(
+            (self.height, self.width)
+        ) < density
         self.cells = np.where(random_mask, non_default_idx, default_idx).astype(
             np.int8
         )

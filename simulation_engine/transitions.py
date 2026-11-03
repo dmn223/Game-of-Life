@@ -35,9 +35,20 @@ class TransitionApplicator:
         Returns:
             Matricea numpy cu starea nouă a gridului.
         """
-        # TODO: Implementare vectorizată cu NumPy
-        # Strategia: pentru fiecare regulă (în ordine de prioritate),
-        # se creează o mască booleană și se aplică tranziția
-        raise NotImplementedError(
-            "TransitionApplicator.apply() — de implementat"
-        )
+        result = cells.copy()
+        unresolved = np.ones(cells.shape, dtype=bool)
+
+        for transition in self._sorted_transitions:
+            source_idx = self.spec.get_state_index(transition.from_state)
+            target_idx = self.spec.get_state_index(transition.to_state)
+            neighbor_counts_for_state = neighbor_counts[transition.neighbor_state]
+            matches = (
+                unresolved
+                & (cells == source_idx)
+                & (neighbor_counts_for_state >= transition.min_count)
+                & (neighbor_counts_for_state <= transition.max_count)
+            )
+            result[matches] = target_idx
+            unresolved[matches] = False
+
+        return result
