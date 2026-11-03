@@ -90,7 +90,7 @@ input, select { min-width: 0; }
 .btn-ctrl:hover:not(:disabled), .btn-tool:hover { background: var(--bg-card); color: var(--text-primary); }
 .btn-play { background: var(--accent); color: #15251e; font-weight: 650; padding-inline: 16px; }
 .btn-play:hover:not(:disabled) { background: #a7d7bf; color: #15251e; }
-.btn-pause, .btn-step { border-color: var(--border); }
+.btn-step { border-color: var(--border); }
 .btn-clear:hover { color: var(--danger); }
 .btn-tool { padding: 5px 8px; }
 .btn-tool.active { background: #2c3e37; border-color: #496457; color: #c5e3d3; }

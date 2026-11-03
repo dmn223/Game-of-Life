@@ -35,7 +35,6 @@ class SimulationControls {
     _bindElements() {
         // Controale principale
         this.btnPlay = document.getElementById('btn-play');
-        this.btnPause = document.getElementById('btn-pause');
         this.btnStep = document.getElementById('btn-step');
         this.btnReset = document.getElementById('btn-reset');
         this.btnRandom = document.getElementById('btn-random');
@@ -67,8 +66,7 @@ class SimulationControls {
     }
 
     _bindEvents() {
-        if (this.btnPlay) this.btnPlay.addEventListener('click', () => this.play());
-        if (this.btnPause) this.btnPause.addEventListener('click', () => this.pause());
+        if (this.btnPlay) this.btnPlay.addEventListener('click', () => this.togglePlayback());
         if (this.btnStep) this.btnStep.addEventListener('click', () => this.step());
         if (this.btnReset) this.btnReset.addEventListener('click', () => this.reset());
         if (this.btnRandom) this.btnRandom.addEventListener('click', () => this.randomize());
@@ -464,8 +462,7 @@ class SimulationControls {
         if (this.isPlaying) return;
         this._captureInitialState();
         this.isPlaying = true;
-        if (this.btnPlay) this.btnPlay.disabled = true;
-        if (this.btnPause) this.btnPause.disabled = false;
+        this._updatePlaybackButton();
 
         this.loopTimer = setInterval(() => this._tick(), 1000 / this.speed);
     }
@@ -476,8 +473,22 @@ class SimulationControls {
             clearInterval(this.loopTimer);
             this.loopTimer = null;
         }
-        if (this.btnPlay) this.btnPlay.disabled = false;
-        if (this.btnPause) this.btnPause.disabled = true;
+        this._updatePlaybackButton();
+    }
+
+    togglePlayback() {
+        if (this.isPlaying) this.pause();
+        else this.play();
+    }
+
+    _updatePlaybackButton() {
+        if (!this.btnPlay) return;
+
+        const label = this.isPlaying ? 'Pause' : 'Play';
+        const action = this.isPlaying ? 'Pause the simulation' : 'Start the simulation (Space)';
+        this.btnPlay.textContent = label;
+        this.btnPlay.title = action;
+        this.btnPlay.setAttribute('aria-label', `${label} simulation`);
     }
 
     step() {

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CelLab — Infinite Cellular Automata Simulator</title>
     <!-- Căi relative sigure pentru compatibilitate completă: localhost și file:// -->
-    <link rel="stylesheet" href="css/style.css?v=12">
+    <link rel="stylesheet" href="css/style.css?v=13">
 </head>
 <body>
     <header class="app-header">
@@ -28,8 +28,7 @@
             <div class="canvas-controls-bar">
                 <div class="simulation-toolbar">
                 <div class="btn-group-primary">
-                    <button id="btn-play" class="btn-ctrl btn-play" title="Start the simulation (Space)">Play</button>
-                    <button id="btn-pause" class="btn-ctrl btn-pause" title="Pause the simulation" disabled>Pause</button>
+                    <button id="btn-play" class="btn-ctrl btn-play" type="button" title="Start the simulation (Space)" aria-label="Play simulation">Play</button>
                     <button id="btn-step" class="btn-ctrl btn-step" title="Advance one generation (S)">Step</button>
                     <button id="btn-reset" class="btn-ctrl" title="Restore the starting configuration and reset the generation counter">Reset</button>
                     <button id="btn-random" class="btn-ctrl btn-random" title="Populate the grid randomly (R)">Random</button>
@@ -257,7 +256,7 @@
 
     <!-- Scripturi cu suport dual pentru încărcare fără eroare (file:// și localhost) -->
     <script src="js/grid.js?v=12"></script>
-    <script src="js/controls.js?v=12"></script>
+    <script src="js/controls.js?v=13"></script>
     <script src="js/rules_panel.js?v=12"></script>
     <script src="js/main.js?v=12"></script>
 </body>
