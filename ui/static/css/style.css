@@ -32,7 +32,7 @@ body {
     font-size: 13px;
     line-height: 1.5;
 }
-button, input, select { font: inherit; }
+button, input, textarea, select { font: inherit; }
 button {
     cursor: pointer;
     color: inherit;
@@ -40,12 +40,12 @@ button {
     transition: background-color 120ms, border-color 120ms, color 120ms;
 }
 button:disabled { opacity: .35; cursor: not-allowed; }
-button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
 }
 button:hover:not(:disabled) { border-color: var(--border-bright); }
-input, select { min-width: 0; }
+input, textarea, select { min-width: 0; }
 .app-header {
     min-height: 64px;
     padding: 12px 24px;
@@ -134,9 +134,9 @@ summary { cursor: pointer; }
 .chips-container { display: flex; flex-direction: column; gap: 4px; }
 .btn-format-chip { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); font-size: 11px; padding: 6px 8px; text-align: left; }
 .btn-format-chip:hover { background: var(--bg-card); }
-.input-row { display: flex; gap: 6px; margin-bottom: 10px; }
-.input-row input { flex: 1; width: 0; background: var(--bg-darkest); border: 1px solid var(--border); border-radius: 5px; padding: 9px; color: var(--text-primary); font: 11px var(--font-mono); }
-.input-row input::placeholder { color: var(--text-dim); }
+.input-row { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 10px; }
+.input-row textarea { flex: 1; width: 0; background: var(--bg-darkest); border: 1px solid var(--border); border-radius: 5px; padding: 9px; color: var(--text-primary); font: 11px/1.6 var(--font-mono); resize: vertical; min-height: 55px; overflow-wrap: anywhere; }
+.input-row textarea::placeholder { color: var(--text-dim); }
 .btn-action { background: #344b40; color: #d0e7da; border: 1px solid #496457; padding: 8px 10px; font-size: 12px; }
 .btn-scratch-toggle { width: 100%; padding: 9px 12px; background: transparent; border: 1px solid var(--border); color: var(--text-secondary); font-size: 12px; text-align: left; }
 .btn-scratch-toggle:hover { background: var(--bg-card); }
@@ -178,9 +178,6 @@ summary { cursor: pointer; }
 .rule-title { font-size: 12px; font-weight: 550; }
 .rule-card-body code { display: block; margin-top: 6px; color: var(--text-secondary); font: 11px/1.6 var(--font-mono); overflow-wrap: anywhere; }
 .placeholder { font-size: 12px; color: var(--text-dim); padding: 6px 0; }
-.info-box { border-bottom: 0; }
-.info-title { font-size: 12px; color: var(--text-dim); }
-.info-text { margin-top: 10px; font-size: 12px; color: var(--text-secondary); }
 .feedback-msg { padding: 9px; margin-top: 10px; border-radius: 5px; font-size: 12px; border: 1px solid var(--border); }
 .feedback-msg.success { color: var(--accent); }
 .feedback-msg.warning { color: var(--warning); }

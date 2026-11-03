@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CelLab — Infinite Cellular Automata Simulator</title>
     <!-- Căi relative sigure pentru compatibilitate completă: localhost și file:// -->
-    <link rel="stylesheet" href="css/style.css?v=13">
+    <link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body>
     <header class="app-header">
@@ -149,12 +149,12 @@
 
                 <!-- Câmp introducere text în format prestabilit -->
                 <div class="input-row">
-                    <input
-                        type="text"
+                    <textarea
+                        rows="2"
                         id="rule-format-input"
                         aria-label="Rule in text format"
                         placeholder="e.g. [x,y] : IF [x-1,y]=1, [x+1,y]=1 THEN [x,y] -> 1"
-                    >
+                    ></textarea>
                     <button id="btn-add-format-rule" class="btn-action"> Add</button>
                 </div>
 
@@ -244,13 +244,6 @@
                 </div>
             </div>
 
-            <!-- 4. HASHMAP OPTIMIZARE INFO (Cerința 4) -->
-            <details class="panel-box info-box">
-                <summary class="info-title">About the simulation</summary>
-                <p class="info-text">
-                    The simulation reuses results from previously encountered local patterns to reduce repeated calculations.
-                </p>
-            </details>
         </aside>
     </main>
 
