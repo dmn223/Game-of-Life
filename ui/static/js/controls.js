@@ -177,7 +177,8 @@ class SimulationControls {
 
         // Callback la mișcarea camerei / zoom
         this.grid.onViewportChange = (cx, cy, zoom) => {
-            if (this.hudCoords) this.hudCoords.textContent = `Center: (${Math.round(cx)}, ${Math.round(cy)})`;
+            // Canvas coordinates increase downward; the HUD uses Cartesian coordinates.
+            if (this.hudCoords) this.hudCoords.textContent = `Center: (${Math.round(cx)}, ${Math.round(-cy)})`;
             if (this.hudZoom) this.hudZoom.textContent = `Zoom: ${Math.round(zoom * 100)}%`;
         };
 
