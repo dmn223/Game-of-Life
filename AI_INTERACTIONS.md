@@ -767,3 +767,41 @@ Probleme la selectarea culorii celulelor: nu se poate schimba culoarea și selec
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 23)
 
 ---
+
+### [2026-11-03 / Pasul 24] - Autor: Codex
+
+**Prompt Utilizator:**
+
+Implementarea întrebării „Câte celule de tip X există după N iterații?”, afișarea funcționalității în aplicație și ajustarea interacțiunii cu generația țintă. Utilizatorul a cerut ca butonul Count să pornească simularea până la generația selectată, să afișeze numărul de celule vii și să poată restaura o stare anterioară când se selectează o generație mai mică. Butonul Play trebuie să ruleze independent de valoarea din câmp și să continue simularea fără oprire automată.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Analiză de numărare în motorul Python (`analysis/analyzer.py`, `analysis/cell_counter.py`):**
+   - Implementat handler-ul `CELL_COUNT` din `Analyzer`: validează numărul de pași și starea, pornește de la starea curentă a simulatorului și rulează analiza pe o copie, fără să modifice simulatorul utilizatorului.
+   - Extins `CellCounter.count()` cu parametrul `generation`, astfel încât rezultatul să indice generația efectiv numărată, alături de total și procent.
+   - Rezultatul expune structura `CountResult` în `AnalysisResult.answer` și include detalii despre generație, număr și procent.
+
+2. **Interfață de numărare și generație țintă (`ui/static/index.html`, `ui/static/css/style.css`, `ui/static/js/controls.js`):**
+   - Adăugat în sidebar secțiunea „Count live cells at a target generation”, cu un câmp numeric și butonul „Count cells”.
+   - Pentru o țintă viitoare, Count pornește simularea curentă și o oprește automat la generația țintă; apoi afișează direct numărul de celule vii.
+   - Păstrat un istoric de stări ale gridului pentru a restaura generații deja calculate. Dacă utilizatorul cere o generație mai mică decât cea curentă, aplicația restaurează gridul acelei generații și afișează numărul de celule vii.
+   - După revenirea la o generație anterioară, evoluția ulterioară formează o nouă ramură de simulare; instantaneele generațiilor viitoare sunt eliminate.
+   - Butonul Play rulează continuu, indiferent de valoarea țintei. Ținta este folosită de Count; schimbarea ei la o valoare mai mare și apăsarea din nou pe Count continuă simularea până la noua generație.
+   - La schimbarea regulilor sau editarea gridului, istoricul viitor este invalidat pentru a evita restaurarea unor stări care nu mai corespund configurației curente.
+   - Actualizate versiunile de cache ale fișierelor JavaScript din `index.html`.
+
+3. **Validare:**
+   - Verificată sintaxa JavaScript cu `node --check` pentru `controls.js` și `rules_panel.js`.
+   - Verificat diff-ul cu `git diff --check`.
+   - Testele automate nu au fost rulate; utilizatorul a dorit să verifice funcționalitatea local înainte de push.
+
+**Fișiere modificate:**
+- `analysis/analyzer.py` (implementare întrebare CELL_COUNT)
+- `analysis/cell_counter.py` (generația rezultată inclusă în CountResult)
+- `ui/static/index.html` (interfața generației țintă și controlul cache-ului)
+- `ui/static/css/style.css` (stiluri pentru formularul și rezultatul numărării)
+- `ui/static/js/controls.js` (numărarea, oprirea la țintă și restaurarea stărilor)
+- `ui/static/js/rules_panel.js` (invalidarea istoricului viitor la schimbarea regulilor)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 24)
+
+---
