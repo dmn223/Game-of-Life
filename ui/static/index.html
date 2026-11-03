@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CelLab — Infinite Cellular Automata Simulator</title>
     <!-- Căi relative sigure pentru compatibilitate completă: localhost și file:// -->
-    <link rel="stylesheet" href="css/style.css?v=14">
+    <link rel="stylesheet" href="css/style.css?v=15">
 </head>
 <body>
     <header class="app-header">
@@ -244,13 +244,24 @@
                 </div>
             </div>
 
+            <div class="panel-box">
+                <h3 class="panel-title">Count live cells at a target generation</h3>
+                <p class="panel-desc">Count runs to the target and stops; an earlier target restores that saved generation. Play runs continuously, independent of this target.</p>
+                <div class="cell-count-analysis-form">
+                    <label for="cell-count-generations">Target generation:</label>
+                    <input id="cell-count-generations" type="number" min="0" max="1000" step="1" value="10">
+                    <button id="btn-cell-count-analysis" class="btn-action" type="button">Count cells</button>
+                </div>
+                <p id="cell-count-analysis-result" class="cell-count-analysis-result" aria-live="polite">The visible grid will not change when counting.</p>
+            </div>
+
         </aside>
     </main>
 
     <!-- Scripturi cu suport dual pentru încărcare fără eroare (file:// și localhost) -->
     <script src="js/grid.js?v=12"></script>
-    <script src="js/controls.js?v=13"></script>
-    <script src="js/rules_panel.js?v=12"></script>
+    <script src="js/controls.js?v=17"></script>
+    <script src="js/rules_panel.js?v=13"></script>
     <script src="js/main.js?v=12"></script>
 </body>
 </html>

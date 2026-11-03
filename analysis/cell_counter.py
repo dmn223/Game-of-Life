@@ -29,6 +29,7 @@ class CellCounter:
         cells: np.ndarray,
         state_index: int,
         state_name: str,
+        generation: int = 0,
     ) -> CountResult:
         """Numără celulele în starea dată.
 
@@ -36,6 +37,7 @@ class CellCounter:
             cells: Matricea gridului.
             state_index: Indexul numeric al stării.
             state_name: Numele stării.
+            generation: Generația la care a fost capturată matricea.
 
         Returns:
             CountResult cu numărul și procentul de celule.
@@ -45,7 +47,7 @@ class CellCounter:
         return CountResult(
             state_name=state_name,
             count=count,
-            generation=0,  # se setează de apelant
+            generation=generation,
             total_cells=total,
             percentage=round(count / total * 100, 2) if total > 0 else 0.0,
         )

@@ -17,8 +17,10 @@ class SimulationControls {
         this.isPlaying = false;
         this.speed = 10; // generații pe secundă
         this.generation = 0;
+        this.stopGeneration = null;
         this.initialCells = null;
         this.loopTimer = null;
+        this.generationStates = new Map();
 
         // Hashmap de stări memoizate: patternHash -> nextState
         // Dacă o secțiune de grid a fost calculată anterior, este găsită instant în O(1)
@@ -29,6 +31,7 @@ class SimulationControls {
         this._bindElements();
         this._bindEvents();
         this._initFpsMeter();
+        this._resetGenerationHistoryFromCurrent();
         this._updateHUD();
     }
 
@@ -41,6 +44,9 @@ class SimulationControls {
         this.btnClear = document.getElementById('btn-clear');
         this.speedSlider = document.getElementById('speed-slider');
         this.speedValue = document.getElementById('speed-value');
+        this.cellCountGenerationsInput = document.getElementById('cell-count-generations');
+        this.btnCellCountAnalysis = document.getElementById('btn-cell-count-analysis');
+        this.cellCountAnalysisResult = document.getElementById('cell-count-analysis-result');
 
         // Unelte navigare
         this.btnToolDraw = document.getElementById('btn-tool-draw');
@@ -71,6 +77,9 @@ class SimulationControls {
         if (this.btnReset) this.btnReset.addEventListener('click', () => this.reset());
         if (this.btnRandom) this.btnRandom.addEventListener('click', () => this.randomize());
         if (this.btnClear) this.btnClear.addEventListener('click', () => this.clear());
+        if (this.btnCellCountAnalysis) {
+            this.btnCellCountAnalysis.addEventListener('click', () => this.showCellCountAfterN());
+        }
 
         // Metodă unificată pentru selectarea și aplicarea culorii active
         const updateActiveColor = (hexOrRgb) => {
@@ -162,6 +171,7 @@ class SimulationControls {
 
         // Callback la modificarea celulelor prin desenare
         this.grid.onCellChange = () => {
+            this._resetGenerationHistoryFromCurrent();
             this._updateHUD();
         };
 
@@ -224,6 +234,7 @@ class SimulationControls {
         // Nu se modifică nicio celulă, gridul rămâne neschimbat!
         if (activeCells.size === 0 || enabledRules.length === 0) {
             this.generation += 1;
+            this._rememberGenerationState();
             this._updateHUD();
             return;
         }
@@ -449,17 +460,102 @@ class SimulationControls {
         this.grid.cells = nextCells;
         this.generation += 1;
 
+        this._rememberGenerationState();
         this.grid.render();
         this._updateHUD();
+    }
+
+    _rememberGenerationState() {
+        if (this.generation >= 0 && this.generation <= 1000) {
+            this.generationStates.set(this.generation, structuredClone(this.grid.cells));
+        }
+    }
+
+    _resetGenerationHistoryFromCurrent() {
+        for (const generation of this.generationStates.keys()) {
+            if (generation > this.generation) this.generationStates.delete(generation);
+        }
+        this._rememberGenerationState();
+    }
+
+    _restoreGenerationState(generation) {
+        const savedCells = this.generationStates.get(generation);
+        if (!savedCells) return false;
+
+        this.pause();
+        this.grid.cells = structuredClone(savedCells);
+        this.generation = generation;
+        for (const savedGeneration of this.generationStates.keys()) {
+            if (savedGeneration > generation) this.generationStates.delete(savedGeneration);
+        }
+        this.grid.render();
+        this._updateHUD();
+        return true;
+    }
+
+    showCellCountAfterN() {
+        if (!this.cellCountGenerationsInput || !this.cellCountAnalysisResult) return;
+
+        const rawTarget = this.cellCountGenerationsInput.value.trim();
+        const target = Number(rawTarget);
+        if (rawTarget === '' || !Number.isInteger(target) || target < 0 || target > 1000) {
+            this.cellCountAnalysisResult.textContent = 'Enter a whole target generation from 0 to 1000.';
+            this.cellCountAnalysisResult.classList.add('error');
+            return;
+        }
+
+        if (target < this.generation) {
+            if (!this._restoreGenerationState(target)) {
+                this.pause();
+                this.cellCountAnalysisResult.textContent = `State for generation ${target} is not available in the saved history.`;
+                this.cellCountAnalysisResult.classList.add('error');
+                return;
+            }
+            this.cellCountAnalysisResult.textContent =
+                `${this.grid.cells.size.toLocaleString()} live cells at generation ${target}.`;
+            this.cellCountAnalysisResult.classList.remove('error');
+            return;
+        }
+
+        if (target === this.generation) {
+            this.pause();
+            this.cellCountAnalysisResult.textContent =
+                `${this.grid.cells.size.toLocaleString()} live cells at generation ${target}.`;
+            this.cellCountAnalysisResult.classList.remove('error');
+            return;
+        }
+
+        this._playUntilGeneration(target);
+        this.cellCountAnalysisResult.textContent = `Playing to generation ${target}…`;
+        this.cellCountAnalysisResult.classList.remove('error');
     }
 
     _tick() {
         if (!this.isPlaying) return;
         this.executeStep();
+        if (this.stopGeneration !== null && this.generation >= this.stopGeneration) {
+            const reachedGeneration = this.generation;
+            const liveCellCount = this.grid.cells.size;
+            this.pause();
+            if (this.cellCountAnalysisResult) {
+                this.cellCountAnalysisResult.textContent =
+                    `${liveCellCount.toLocaleString()} live cells at generation ${reachedGeneration}.`;
+                this.cellCountAnalysisResult.classList.remove('error');
+            }
+        }
     }
 
     play() {
         if (this.isPlaying) return;
+        this._playUntilGeneration(null);
+    }
+
+    _playUntilGeneration(target) {
+        if (this.isPlaying) {
+            this.stopGeneration = target;
+            return;
+        }
+        this.stopGeneration = target;
         this._captureInitialState();
         this.isPlaying = true;
         this._updatePlaybackButton();
@@ -469,6 +565,7 @@ class SimulationControls {
 
     pause() {
         this.isPlaying = false;
+        this.stopGeneration = null;
         if (this.loopTimer) {
             clearInterval(this.loopTimer);
             this.loopTimer = null;
@@ -508,6 +605,8 @@ class SimulationControls {
         this.generation = 0;
         this.initialCells = null;
         this.clearCache();
+        this.generationStates.clear();
+        this._rememberGenerationState();
     }
 
     reset() {

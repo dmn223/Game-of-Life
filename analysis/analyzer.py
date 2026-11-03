@@ -94,8 +94,41 @@ class Analyzer:
 
     def _handle_cell_count(self, **params: Any) -> AnalysisResult:
         """Q4: Câte celule de tipul X există după N iterații?"""
-        # TODO: Implementare
-        raise NotImplementedError
+        steps = params.get("n")
+        state_name = params.get("state", params.get("state_name"))
+
+        if type(steps) is not int or steps < 0:
+            raise ValueError("Parametrul 'n' trebuie să fie un întreg nenegativ")
+        if not isinstance(state_name, str) or not state_name:
+            raise ValueError("Specifică starea de numărat prin parametrul 'state'")
+
+        state_index = self.simulator.spec.get_state_index(state_name)
+
+        # Analiza pornește din generația și gridul curent, dar nu modifică
+        # simulatorul interactiv al utilizatorului.
+        analysis_simulator = Simulator(self.simulator.spec)
+        analysis_simulator.grid.cells = self.simulator.grid.cells.copy()
+        analysis_simulator.generation = self.simulator.generation
+        analysis_simulator.run(steps)
+
+        generation_reached = self.simulator.generation + steps
+        count_result = self._cell_counter.count(
+            analysis_simulator.grid.cells,
+            state_index=state_index,
+            state_name=state_name,
+            generation=generation_reached,
+        )
+
+        return AnalysisResult(
+            question_type=QuestionType.CELL_COUNT,
+            answer=count_result,
+            details=(
+                f"Generația {generation_reached}: {count_result.count} celule "
+                f"în starea '{state_name}' din {count_result.total_cells} "
+                f"({count_result.percentage}%)."
+            ),
+            generation_reached=generation_reached,
+        )
 
     def _handle_cycle_detection(self, **params: Any) -> AnalysisResult:
         """Q5: Intră simularea într-un ciclu repetitiv?"""

@@ -458,6 +458,7 @@ class RulesPanel {
         this._renderRulesList();
         if (window.controls) {
             window.controls.clearCache(); // Golim cache-ul Hashmap când se schimbă regulile
+            window.controls._resetGenerationHistoryFromCurrent();
         }
     }
 
