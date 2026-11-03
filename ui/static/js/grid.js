@@ -29,7 +29,7 @@ class InfiniteGridRenderer {
         this.maxZoom = 40.0;
 
         // Culori
-        this.bgColor = '#0e101f';
+        this.bgColor = '#111619';
         this.gridLineColor = 'rgba(255, 255, 255, 0.04)';
         this.aliveColor = '#00ff88';
         this.aliveBorderColor = '#00cc6a';
@@ -515,7 +515,7 @@ class InfiniteGridRenderer {
             // Axe principale (0, 0) dacă sunt vizibile
             if (minWorldX <= 0 && maxWorldX >= 0) {
                 const sx0 = cx + (0 - this.cameraX) * cellSize;
-                ctx.strokeStyle = 'rgba(139, 92, 246, 0.25)';
+                ctx.strokeStyle = 'rgba(146, 174, 164, 0.18)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(sx0, 0);
@@ -524,7 +524,7 @@ class InfiniteGridRenderer {
             }
             if (minWorldY <= 0 && maxWorldY >= 0) {
                 const sy0 = cy + (0 - this.cameraY) * cellSize;
-                ctx.strokeStyle = 'rgba(139, 92, 246, 0.25)';
+                ctx.strokeStyle = 'rgba(146, 174, 164, 0.18)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(0, sy0);

@@ -34,11 +34,11 @@ const ApiClient = {
             });
             if (!r.ok) {
                 const err = await r.json().catch(() => ({}));
-                throw new Error(err.detail || 'Eroare la setarea regulilor');
+                throw new Error(err.detail || 'Could not update the rules');
             }
             return await r.json();
         } catch (err) {
-            console.warn('API setRules offline/eroare:', err.message);
+            console.warn('API setRules offline/error:', err.message);
             return { success: false, rules_count: rules.length, offline: true };
         }
     },
@@ -93,7 +93,7 @@ const ApiClient = {
         });
         if (!r.ok) {
             const err = await r.json().catch(() => ({}));
-            throw new Error(err.detail || 'Nu s-a putut parsa regula');
+            throw new Error(err.detail || 'Could not parse the rule');
         }
         return await r.json();
     },
@@ -178,7 +178,7 @@ const ApiClient = {
         const r = await fetch(`${API_BASE}/simulate/step`, { method: 'POST' });
         if (!r.ok) {
             const err = await r.json().catch(() => ({}));
-            throw new Error(err.detail || 'Eroare la simulare pe server');
+            throw new Error(err.detail || 'Server simulation failed');
         }
         return await r.json();
     },
@@ -194,7 +194,7 @@ const ApiClient = {
         });
         if (!r.ok) {
             const err = await r.json().catch(() => ({}));
-            throw new Error(err.detail || 'Eroare la simulare pe server');
+            throw new Error(err.detail || 'Server simulation failed');
         }
         return await r.json();
     },
@@ -222,7 +222,7 @@ const ApiClient = {
         });
         if (!r.ok) {
             const err = await r.json().catch(() => ({}));
-            throw new Error(err.detail || 'Eroare la analiză');
+            throw new Error(err.detail || 'Analysis failed');
         }
         return await r.json();
     },
@@ -235,7 +235,7 @@ const ApiClient = {
             const wsUrl = `${WS_BASE}/simulation`;
             return new WebSocket(wsUrl);
         } catch (e) {
-            console.warn('Nu s-a putut crea WebSocket URL:', e.message);
+            console.warn('Could not create the WebSocket URL:', e.message);
             return null;
         }
     },

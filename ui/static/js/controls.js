@@ -17,6 +17,7 @@ class SimulationControls {
         this.isPlaying = false;
         this.speed = 10; // generații pe secundă
         this.generation = 0;
+        this.initialCells = null;
         this.loopTimer = null;
 
         // Hashmap de stări memoizate: patternHash -> nextState
@@ -121,7 +122,7 @@ class SimulationControls {
             this.btnRecolorAll.addEventListener('click', () => {
                 this.grid.recolorAll(this.grid.currentColor);
                 if (window.rulesPanel) {
-                    window.rulesPanel._showFeedback('🎨 Toate celulele vii au fost colorate în noua nuanță!', 'success');
+                    window.rulesPanel._showFeedback('All live cells now use the selected color.', 'success');
                 }
             });
         }
@@ -168,7 +169,7 @@ class SimulationControls {
 
         // Callback la mișcarea camerei / zoom
         this.grid.onViewportChange = (cx, cy, zoom) => {
-            if (this.hudCoords) this.hudCoords.textContent = `Centru: (${Math.round(cx)}, ${Math.round(cy)})`;
+            if (this.hudCoords) this.hudCoords.textContent = `Center: (${Math.round(cx)}, ${Math.round(cy)})`;
             if (this.hudZoom) this.hudZoom.textContent = `Zoom: ${Math.round(zoom * 100)}%`;
         };
 
@@ -216,6 +217,7 @@ class SimulationControls {
      * Calculează generația următoare pe spațiul infinit folosind Hashmap Memoization
      */
     executeStep() {
+        this._captureInitialState();
         const rules = this.getActiveRules();
         const enabledRules = rules.filter(r => r.enabled !== false);
         const activeCells = this.grid.cells;
@@ -460,6 +462,7 @@ class SimulationControls {
 
     play() {
         if (this.isPlaying) return;
+        this._captureInitialState();
         this.isPlaying = true;
         if (this.btnPlay) this.btnPlay.disabled = true;
         if (this.btnPause) this.btnPause.disabled = false;
@@ -482,28 +485,39 @@ class SimulationControls {
         this.executeStep();
     }
 
-    reset() {
+    _captureInitialState() {
+        if (this.initialCells === null) {
+            this.initialCells = structuredClone(this.grid.cells);
+        }
+    }
+
+    // Use after replacing the grid with a preset, random cells, or an empty grid.
+    startNewConfiguration() {
         this.pause();
         this.generation = 0;
-        this.cacheHits = 0;
-        this.cacheMisses = 0;
-        this._updateHUD();
+        this.initialCells = null;
+        this.clearCache();
+    }
+
+    reset() {
+        this.pause();
+        if (this.initialCells !== null) {
+            this.grid.cells = structuredClone(this.initialCells);
+        }
+        this.startNewConfiguration();
+        this.grid.render();
     }
 
     clear() {
         this.pause();
         this.grid.clear();
-        this.generation = 0;
-        this.cacheHits = 0;
-        this.cacheMisses = 0;
-        this._updateHUD();
+        this.startNewConfiguration();
     }
 
     randomize(size = 60, density = 0.28) {
         this.pause();
         this.grid.randomize(size, density);
-        this.generation = 0;
-        this._updateHUD();
+        this.startNewConfiguration();
     }
 
     /**
@@ -517,7 +531,7 @@ class SimulationControls {
 
         const updateFpsUi = (fps) => {
             this.currentFps = fps;
-            const text = `⚡ ${fps} FPS`;
+            const text = `${fps} FPS`;
 
             if (this.hudFps) {
                 this.hudFps.textContent = text;
@@ -525,7 +539,7 @@ class SimulationControls {
                 if (fps >= 50) this.hudFps.classList.add('fps-good');
                 else if (fps >= 30) this.hudFps.classList.add('fps-warn');
                 else this.hudFps.classList.add('fps-bad');
-                this.hudFps.title = `Fluență: ${fps} FPS (${fps >= 50 ? 'Excelent' : fps >= 30 ? 'Bun' : 'Scăzut'})`;
+                this.hudFps.title = `Frame rate: ${fps} FPS (${fps >= 50 ? 'Excellent' : fps >= 30 ? 'Good' : 'Low'})`;
             }
         };
 
@@ -547,18 +561,18 @@ class SimulationControls {
     _updateHUD() {
         const count = this.grid.getActiveCellCount();
         if (this.generationCounter) this.generationCounter.textContent = `Gen: ${this.generation}`;
-        if (this.cellCount) this.cellCount.textContent = `Vii: ${count}`;
+        if (this.cellCount) this.cellCount.textContent = `Alive: ${count}`;
 
         const rules = this.getActiveRules();
         const enabledCount = rules.filter(r => r.enabled !== false).length;
 
         if (this.cacheStats) {
             if (enabledCount === 0) {
-                this.cacheStats.textContent = 'Stare: Stabilă (0 reguli)';
+                this.cacheStats.textContent = 'State: stable (no rules)';
             } else {
                 const totalQueries = this.cacheHits + this.cacheMisses;
                 const hitRate = totalQueries > 0 ? Math.round((this.cacheHits / totalQueries) * 100) : 0;
-                this.cacheStats.textContent = `Hashmap: ${this.hashmapCache.size} stări (${hitRate}% hit)`;
+                this.cacheStats.textContent = `Hashmap: ${this.hashmapCache.size} states (${hitRate}% hit)`;
             }
         }
     }

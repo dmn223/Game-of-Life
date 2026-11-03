@@ -3,12 +3,12 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🧬 CelLab — Simulator de Automate Celulare 2D pe Spațiu Infinit');
+    console.log('CelLab — Infinite 2D Cellular Automata Simulator');
 
     // 1. Inițializare Grid Renderer Infinit pe Canvas
     const canvas = document.getElementById('grid-canvas');
     if (!canvas) {
-        console.error('Canvas elementul #grid-canvas nu a fost găsit!');
+        console.error('Canvas element #grid-canvas was not found.');
         return;
     }
 
@@ -28,5 +28,5 @@ document.addEventListener('DOMContentLoaded', () => {
         rulesPanel.presetGolRandom();
     }, 100);
 
-    console.log('✅ CelLab inițializat cu succes!');
+    console.log('CelLab initialized successfully.');
 });

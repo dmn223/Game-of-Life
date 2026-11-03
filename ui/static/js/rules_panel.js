@@ -2,7 +2,7 @@
  * CelLab Rules Panel — Format Prestabilit de Reguli & Presetări Rapide Randomizate.
  *
  * Format Prestabilit:
- * [x,y] : DACA [x+dx,y+dy]=stare, ... ATUNCI [x+dx,y+dy] -> actiune
+ * [x,y] : IF [x+dx,y+dy]=stare, ... THEN [x+dx,y+dy] -> actiune
  */
 
 class RulesPanel {
@@ -126,7 +126,7 @@ class RulesPanel {
                 if (this.ruleFormatInput) {
                     this.ruleFormatInput.value = code;
                     this.ruleFormatInput.focus();
-                    this._showFeedback('📋 Regula generată a fost copiată în câmpul text!', 'success');
+                    this._showFeedback('The rule was copied to the text field.', 'success');
                 }
             });
         }
@@ -153,20 +153,20 @@ class RulesPanel {
             this.btnClearRules.addEventListener('click', () => {
                 this.rules = [];
                 this._onRulesUpdated();
-                this._showFeedback('Toate regulile au fost șterse. (Fără reguli active, celulele rămân neschimbate la Play)', 'warning');
+                this._showFeedback('All rules removed. Cells stay unchanged when no rules are active.', 'warning');
             });
         }
     }
 
     /**
      * Parsează un șir conform Formatului Prestabilit:
-     * [x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> 1, [x+1,y] -> 0
+     * [x,y] : IF [x-1,y]=1, [x+1,y]=1 THEN [x,y] -> 1, [x+1,y] -> 0
      */
     parsePredefinedRule(text) {
         const clean = text.trim();
         if (!clean) return null;
 
-        // Căutare delimitatori DACA / IF și ATUNCI / THEN / SA AIBA LOC / ->
+        // Accept English syntax and legacy Romanian delimiters.
         const parts = clean.split(/ATUNCI|THEN|SA\s+AIBA\s+LOC|=>/i);
         const ifPart = parts[0] || '';
         const thenPart = parts[1] || '';
@@ -183,7 +183,7 @@ class RulesPanel {
         const coordRegex = /\[\s*x\s*([+-]\s*\d+)?\s*,\s*y\s*([+-]\s*\d+)?\s*\](?:\s*=\s*([01]))?/gi;
         let m;
 
-        // Căutăm doar după cuvântul DACA / IF dacă există
+        // Read conditions after the header separator when present.
         const condSub = ifPart.includes(':') ? ifPart.split(':')[1] : ifPart;
 
         while ((m = coordRegex.exec(condSub)) !== null) {
@@ -194,7 +194,7 @@ class RulesPanel {
             patternConds.push({ dx, dy, state });
         }
 
-        // 3. Extragere efecte ATUNCI: [x+dx, y+dy] -> actiune
+        // 3. Extragere efecte THEN: [x+dx, y+dy] -> actiune
         const effects = [];
         const effRegex = /\[\s*x\s*([+-]\s*\d+)?\s*,\s*y\s*([+-]\s*\d+)?\s*\](?:\s*->|\s*devine|\s*se\s*transforma\s*in|\s*=\s*)?\s*([a-zA-Z0-9_]+)/gi;
 
@@ -210,7 +210,7 @@ class RulesPanel {
             effects.push({ dx, dy, action });
         }
 
-        // Dacă nu s-a specificat o țintă explicită în ATUNCI, ținta implicită este [x,y]
+        // Dacă nu s-a specificat o țintă explicită în THEN, ținta implicită este [x,y]
         if (effects.length === 0) {
             let defAct = 'set_1';
             const lowerThen = thenPart.toLowerCase();
@@ -224,7 +224,7 @@ class RulesPanel {
         }
 
         return {
-            name: `Regulă Format #${this.rules.length + 1}`,
+            name: `Custom rule #${this.rules.length + 1}`,
             description: clean,
             current_state: currentState,
             pattern_conditions: patternConds,
@@ -236,19 +236,19 @@ class RulesPanel {
     _addRuleFromFormatInput() {
         const raw = this.ruleFormatInput ? this.ruleFormatInput.value.trim() : '';
         if (!raw) {
-            this._showFeedback('Introduceți o regulă sau alegeți un șablon de mai sus.', 'warning');
+            this._showFeedback('Enter a rule or choose an example above.', 'warning');
             return;
         }
 
         const parsed = this.parsePredefinedRule(raw);
         if (!parsed) {
-            this._showFeedback('Format invalid. Folosiți: [x,y] : DACA [x-1,y]=1 ATUNCI [x,y] -> 1', 'error');
+            this._showFeedback('Invalid format. Use: [x,y] : IF [x-1,y]=1 THEN [x,y] -> 1', 'error');
             return;
         }
 
         this.rules.push(parsed);
         this._onRulesUpdated();
-        this._showFeedback('✅ Regulă adăugată și activată!', 'success');
+        this._showFeedback('Rule added and enabled.', 'success');
         if (this.ruleFormatInput) this.ruleFormatInput.value = '';
     }
 
@@ -268,19 +268,19 @@ class RulesPanel {
     _renderScratchConditions() {
         if (!this.scratchConditionsList) return;
         if (this.scratchBlocks.conditions.length === 0) {
-            this.scratchConditionsList.innerHTML = '<div class="scratch-empty-note">Nicio condiție de vecinătate (se aplică necondiționat).</div>';
+            this.scratchConditionsList.innerHTML = '<div class="scratch-empty-note">No neighbor conditions (always applies).</div>';
             return;
         }
 
         const coordOptions = [
-            { val: '-1,0', label: '[x-1, y] (Stânga)' },
-            { val: '1,0', label: '[x+1, y] (Dreapta)' },
-            { val: '0,-1', label: '[x, y-1] (Sus)' },
-            { val: '0,1', label: '[x, y+1] (Jos)' },
-            { val: '-1,-1', label: '[x-1, y-1] (Stânga-Sus)' },
-            { val: '1,-1', label: '[x+1, y-1] (Dreapta-Sus)' },
-            { val: '-1,1', label: '[x-1, y+1] (Stânga-Jos)' },
-            { val: '1,1', label: '[x+1, y+1] (Dreapta-Jos)' }
+            { val: '-1,0', label: '[x-1, y] (Left)' },
+            { val: '1,0', label: '[x+1, y] (Right)' },
+            { val: '0,-1', label: '[x, y-1] (Up)' },
+            { val: '0,1', label: '[x, y+1] (Down)' },
+            { val: '-1,-1', label: '[x-1, y-1] (Upper left)' },
+            { val: '1,-1', label: '[x+1, y-1] (Upper right)' },
+            { val: '-1,1', label: '[x-1, y+1] (Lower left)' },
+            { val: '1,1', label: '[x+1, y+1] (Lower right)' }
         ];
 
         let html = '';
@@ -292,16 +292,16 @@ class RulesPanel {
 
             html += `
                 <div class="scratch-mini-block scratch-mini-cond">
-                    <span class="scratch-mini-label">Vecin:</span>
+                    <span class="scratch-mini-label">Neighbor:</span>
                     <select class="scratch-mini-select scratch-cond-coord" data-idx="${idx}">
                         ${optsHtml}
                     </select>
                     <span class="scratch-op">=</span>
                     <select class="scratch-mini-select scratch-cond-state" data-idx="${idx}">
-                        <option value="1" ${cond.state === 1 ? 'selected' : ''}>1 (Vie)</option>
-                        <option value="0" ${cond.state === 0 ? 'selected' : ''}>0 (Moartă)</option>
+                        <option value="1" ${cond.state === 1 ? 'selected' : ''}>1 (Alive)</option>
+                        <option value="0" ${cond.state === 0 ? 'selected' : ''}>0 (Dead)</option>
                     </select>
-                    <button type="button" class="scratch-btn-del-mini scratch-cond-del" data-idx="${idx}" title="Elimină condiție">✕</button>
+                    <button type="button" class="scratch-btn-del-mini scratch-cond-del" data-idx="${idx}" title="Remove condition">✕</button>
                 </div>
             `;
         });
@@ -340,20 +340,20 @@ class RulesPanel {
     _renderScratchActions() {
         if (!this.scratchActionsList) return;
         if (this.scratchBlocks.actions.length === 0) {
-            this.scratchActionsList.innerHTML = '<div class="scratch-empty-note">Nicio acțiune definită.</div>';
+            this.scratchActionsList.innerHTML = '<div class="scratch-empty-note">No actions defined.</div>';
             return;
         }
 
         const targetOptions = [
-            { val: '0,0', label: '[x, y] (Celula Curentă)' },
-            { val: '-1,0', label: '[x-1, y] (Stânga)' },
-            { val: '1,0', label: '[x+1, y] (Dreapta)' },
-            { val: '0,-1', label: '[x, y-1] (Sus)' },
-            { val: '0,1', label: '[x, y+1] (Jos)' },
-            { val: '-1,-1', label: '[x-1, y-1] (Stânga-Sus)' },
-            { val: '1,-1', label: '[x+1, y-1] (Dreapta-Sus)' },
-            { val: '-1,1', label: '[x-1, y+1] (Stânga-Jos)' },
-            { val: '1,1', label: '[x+1, y+1] (Dreapta-Jos)' }
+            { val: '0,0', label: '[x, y] (Current cell)' },
+            { val: '-1,0', label: '[x-1, y] (Left)' },
+            { val: '1,0', label: '[x+1, y] (Right)' },
+            { val: '0,-1', label: '[x, y-1] (Up)' },
+            { val: '0,1', label: '[x, y+1] (Down)' },
+            { val: '-1,-1', label: '[x-1, y-1] (Upper left)' },
+            { val: '1,-1', label: '[x+1, y-1] (Upper right)' },
+            { val: '-1,1', label: '[x-1, y+1] (Lower left)' },
+            { val: '1,1', label: '[x+1, y+1] (Lower right)' }
         ];
 
         let html = '';
@@ -365,18 +365,18 @@ class RulesPanel {
 
             html += `
                 <div class="scratch-mini-block scratch-mini-action">
-                    <span class="scratch-mini-label">Câmp:</span>
+                    <span class="scratch-mini-label">Target:</span>
                     <select class="scratch-mini-select scratch-action-coord" data-idx="${idx}">
                         ${optsHtml}
                     </select>
                     <span class="scratch-op">➔</span>
                     <select class="scratch-mini-select scratch-action-type" data-idx="${idx}">
-                        <option value="set_1" ${act.action === 'set_1' ? 'selected' : ''}>1 (Aprinde / Vie)</option>
-                        <option value="set_0" ${act.action === 'set_0' ? 'selected' : ''}>0 (Stinge / Moartă)</option>
-                        <option value="invert" ${act.action === 'invert' ? 'selected' : ''}>invers (Toggle)</option>
-                        <option value="keep" ${act.action === 'keep' ? 'selected' : ''}>mentine (Neschimbat)</option>
+                        <option value="set_1" ${act.action === 'set_1' ? 'selected' : ''}>1 (On / Alive)</option>
+                        <option value="set_0" ${act.action === 'set_0' ? 'selected' : ''}>0 (Off / Dead)</option>
+                        <option value="invert" ${act.action === 'invert' ? 'selected' : ''}>invert (Toggle)</option>
+                        <option value="keep" ${act.action === 'keep' ? 'selected' : ''}>keep (Unchanged)</option>
                     </select>
-                    <button type="button" class="scratch-btn-del-mini scratch-action-del" data-idx="${idx}" title="Elimină acțiune">✕</button>
+                    <button type="button" class="scratch-btn-del-mini scratch-action-del" data-idx="${idx}" title="Remove action">✕</button>
                 </div>
             `;
         });
@@ -425,13 +425,13 @@ class RulesPanel {
         const actStrs = this.scratchBlocks.actions.map(a => {
             let actWord = '1';
             if (a.action === 'set_0') actWord = '0';
-            else if (a.action === 'invert') actWord = 'invers';
-            else if (a.action === 'keep') actWord = 'mentine';
+            else if (a.action === 'invert') actWord = 'invert';
+            else if (a.action === 'keep') actWord = 'keep';
             return `${this._formatCoord(a.dx, a.dy)} -> ${actWord}`;
         });
         const actPart = actStrs.length > 0 ? actStrs.join(', ') : '[x,y] -> 1';
 
-        return `${header} : DACA ${condPart} ATUNCI ${actPart}`;
+        return `${header} : IF ${condPart} THEN ${actPart}`;
     }
 
     _updateScratchPreview() {
@@ -444,14 +444,14 @@ class RulesPanel {
         const code = this._getScratchCode();
         const parsed = this.parsePredefinedRule(code);
         if (!parsed) {
-            this._showFeedback('Formatul generat este invalid.', 'error');
+            this._showFeedback('The generated rule is invalid.', 'error');
             return;
         }
 
-        parsed.name = `Regulă #${this.rules.length + 1}`;
+        parsed.name = `Rule #${this.rules.length + 1}`;
         this.rules.push(parsed);
         this._onRulesUpdated();
-        this._showFeedback(`✅ Regula "${parsed.name}" a fost adăugată și activată!`, 'success');
+        this._showFeedback(`Rule "${parsed.name}" added.`, 'success');
     }
 
     _onRulesUpdated() {
@@ -470,7 +470,7 @@ class RulesPanel {
         }
 
         if (this.rules.length === 0) {
-            this.activeRulesList.innerHTML = '<p class="placeholder">Nicio regulă activă. Celulele rămân neschimbate la rulare. Alegeți o presetare randomizată sau adăugați o regulă mai sus.</p>';
+            this.activeRulesList.innerHTML = '<p class="placeholder">No active rules. Cells will stay unchanged. Choose a preset or add a rule above.</p>';
             return;
         }
 
@@ -482,9 +482,9 @@ class RulesPanel {
                     <div class="rule-card-header">
                         <label class="rule-toggle-label">
                             <input type="checkbox" class="rule-toggle-checkbox" data-idx="${idx}" ${isEnabled ? 'checked' : ''}>
-                            <span class="rule-title">${rule.name || `Regula ${idx + 1}`}</span>
+                            <span class="rule-title">${rule.name || `Rule ${idx + 1}`}</span>
                         </label>
-                        <button class="btn-delete-rule" data-idx="${idx}" title="Șterge regula">✕</button>
+                        <button class="btn-delete-rule" data-idx="${idx}" title="Remove rule">✕</button>
                     </div>
                     <div class="rule-card-body">
                         <code>${rule.description || ''}</code>
@@ -522,32 +522,32 @@ class RulesPanel {
     _loadDefaultGoL(showFeedback = true) {
         this.rules = [
             {
-                name: 'GoL: Supraviețuire (2-3 vecini)',
-                description: '[x,y]=1 : DACA 2..3 vecini vii ATUNCI [x,y] -> 1',
+                name: 'GoL: Survival (2–3 neighbors)',
+                description: '[x,y]=1 : IF 2..3 live neighbors THEN [x,y] -> 1',
                 current_state: 1,
                 count_conditions: [{ state: 1, min_count: 2, max_count: 3 }],
                 effects: [{ dx: 0, dy: 0, action: 'set_1' }],
                 enabled: true,
             },
             {
-                name: 'GoL: Naștere (exact 3 vecini)',
-                description: '[x,y]=0 : DACA exact 3 vecini vii ATUNCI [x,y] -> 1',
+                name: 'GoL: Birth (exactly 3 neighbors)',
+                description: '[x,y]=0 : IF exactly 3 live neighbors THEN [x,y] -> 1',
                 current_state: 0,
                 count_conditions: [{ state: 1, min_count: 3, max_count: 3 }],
                 effects: [{ dx: 0, dy: 0, action: 'set_1' }],
                 enabled: true,
             },
             {
-                name: 'GoL: Subpopulare (<2 vecini)',
-                description: '[x,y]=1 : DACA <2 vecini vii ATUNCI [x,y] -> 0',
+                name: 'GoL: Underpopulation (<2 neighbors)',
+                description: '[x,y]=1 : IF <2 live neighbors THEN [x,y] -> 0',
                 current_state: 1,
                 count_conditions: [{ state: 1, min_count: 0, max_count: 1 }],
                 effects: [{ dx: 0, dy: 0, action: 'set_0' }],
                 enabled: true,
             },
             {
-                name: 'GoL: Suprapopulare (>3 vecini)',
-                description: '[x,y]=1 : DACA >3 vecini vii ATUNCI [x,y] -> 0',
+                name: 'GoL: Overpopulation (>3 neighbors)',
+                description: '[x,y]=1 : IF >3 live neighbors THEN [x,y] -> 0',
                 current_state: 1,
                 count_conditions: [{ state: 1, min_count: 4, max_count: 8 }],
                 effects: [{ dx: 0, dy: 0, action: 'set_0' }],
@@ -556,7 +556,7 @@ class RulesPanel {
         ];
         this._onRulesUpdated();
         if (showFeedback) {
-            this._showFeedback('⭐ Reguli Default Conway Game of Life încărcate!', 'success');
+            this._showFeedback('Default Game of Life rules loaded.', 'success');
         }
     }
 
@@ -583,9 +583,9 @@ class RulesPanel {
             addGlider(-35, 35, '#ffea00');  // Galben solar
 
             grid.fitAll();
-            window.controls.reset();
+            window.controls.startNewConfiguration();
         }
-        this._showFeedback('🧬 Preset Conway Game of Life + Supă Randomizată încărcată!', 'success');
+        this._showFeedback('Game of Life preset loaded.', 'success');
     }
 
     /**
@@ -594,8 +594,8 @@ class RulesPanel {
     presetInvertRandom() {
         this.rules = [
             {
-                name: 'Inversor Orizontal [x,y]',
-                description: '[x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> invers, [x+1,y] -> 0',
+                name: 'Horizontal inverter [x,y]',
+                description: '[x,y] : IF [x-1,y]=1, [x+1,y]=1 THEN [x,y] -> invert, [x+1,y] -> 0',
                 current_state: -1,
                 pattern_conditions: [
                     { dx: -1, dy: 0, state: 1 },
@@ -608,8 +608,8 @@ class RulesPanel {
                 enabled: true,
             },
             {
-                name: 'Pulsar Vertical [x,y]',
-                description: '[x,y] : DACA [x,y-1]=1, [x,y+1]=1 ATUNCI [x,y] -> invers',
+                name: 'Vertical pulsar [x,y]',
+                description: '[x,y] : IF [x,y-1]=1, [x,y+1]=1 THEN [x,y] -> invert',
                 current_state: -1,
                 pattern_conditions: [
                     { dx: 0, dy: -1, state: 1 },
@@ -638,19 +638,19 @@ class RulesPanel {
             }
 
             grid.fitAll();
-            window.controls.reset();
+            window.controls.startNewConfiguration();
         }
-        this._showFeedback('🔄 Preset Inversor Orizontal [x,y] + Linii Randomizate încărcat!', 'success');
+        this._showFeedback('Horizontal inverter preset loaded.', 'success');
     }
 
     /**
-     * Preset 3: Val de Propagare Dreapta Randomizat
+     * Preset 3: Rightward wave Randomizat
      */
     presetWaveRandom() {
         this.rules = [
             {
-                name: 'Val de Propagare Dreapta',
-                description: '[x,y] : DACA [x-1,y]=1 ATUNCI [x,y] -> 1, [x-1,y] -> 0',
+                name: 'Rightward wave',
+                description: '[x,y] : IF [x-1,y]=1 THEN [x,y] -> 1, [x-1,y] -> 0',
                 current_state: -1,
                 pattern_conditions: [{ dx: -1, dy: 0, state: 1 }],
                 effects: [
@@ -678,9 +678,9 @@ class RulesPanel {
             }
 
             grid.fitAll();
-            window.controls.reset();
+            window.controls.startNewConfiguration();
         }
-        this._showFeedback('🌊 Preset Val Propagare Dreapta + Bariere Randomizate încărcat!', 'success');
+        this._showFeedback('Rightward wave preset loaded.', 'success');
     }
 
     /**
@@ -689,16 +689,16 @@ class RulesPanel {
     presetSeedsRandom() {
         this.rules = [
             {
-                name: 'Seeds: Naștere (exact 2 vecini)',
-                description: '[x,y]=0 : DACA exact 2 vecini vii ATUNCI [x,y] -> 1',
+                name: 'Seeds: Birth (exactly 2 neighbors)',
+                description: '[x,y]=0 : IF exactly 2 live neighbors THEN [x,y] -> 1',
                 current_state: 0,
                 count_conditions: [{ state: 1, min_count: 2, max_count: 2 }],
                 effects: [{ dx: 0, dy: 0, action: 'set_1' }],
                 enabled: true,
             },
             {
-                name: 'Seeds: Moarte Imediată',
-                description: '[x,y]=1 : DACA 0..8 vecini ATUNCI [x,y] -> 0',
+                name: 'Seeds: Immediate death',
+                description: '[x,y]=1 : IF 0..8 neighbors THEN [x,y] -> 0',
                 current_state: 1,
                 count_conditions: [{ state: 1, min_count: 0, max_count: 8 }],
                 effects: [{ dx: 0, dy: 0, action: 'set_0' }],
@@ -724,9 +724,9 @@ class RulesPanel {
             }
 
             grid.fitAll();
-            window.controls.reset();
+            window.controls.startNewConfiguration();
         }
-        this._showFeedback('🌱 Preset Seeds (B2/S) + Semințe Randomizate încărcat!', 'success');
+        this._showFeedback('Seeds preset loaded.', 'success');
     }
 
     /**
@@ -735,8 +735,8 @@ class RulesPanel {
     presetChaosRandom() {
         this.rules = [
             {
-                name: 'Haos Simultan Multi-Câmp',
-                description: '[x,y] : DACA [x,y-1]=1, [x+1,y]=1 ATUNCI [x,y] -> invers, [x-1,y] -> 1',
+                name: 'Simultaneous multi-cell chaos',
+                description: '[x,y] : IF [x,y-1]=1, [x+1,y]=1 THEN [x,y] -> invert, [x-1,y] -> 1',
                 current_state: -1,
                 pattern_conditions: [
                     { dx: 0, dy: -1, state: 1 },
@@ -757,15 +757,15 @@ class RulesPanel {
             grid.clear();
             grid.randomize(45, 0.25);
             grid.fitAll();
-            window.controls.reset();
+            window.controls.startNewConfiguration();
         }
-        this._showFeedback('💥 Preset Haos Multi-Câmp + Constelație Randomizată încărcat!', 'success');
+        this._showFeedback('Chaos preset loaded.', 'success');
     }
 
     _showFeedback(msg, type = 'success') {
         if (!this.ruleFeedback) return;
         this.ruleFeedback.textContent = msg;
-        this.ruleFeedback.className = `feedback ${type}`;
+        this.ruleFeedback.className = `feedback-msg ${type}`;
         this.ruleFeedback.classList.remove('hidden');
 
         setTimeout(() => {

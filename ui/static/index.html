@@ -1,24 +1,23 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CelLab — Simulator Automate Celulare pe Spațiu Infinit</title>
+    <title>CelLab — Infinite Cellular Automata Simulator</title>
     <!-- Căi relative sigure pentru compatibilitate completă: localhost și file:// -->
-    <link rel="stylesheet" href="css/style.css?v=9">
-    <link rel="stylesheet" href="/static/css/style.css?v=9">
+    <link rel="stylesheet" href="css/style.css?v=12">
 </head>
 <body>
     <header class="app-header">
         <div class="header-content">
-            <h1 class="title">🧬 CelLab</h1>
-            <span class="header-tag">Spațiu Infinit & Hashmap Cache</span>
+            <h1 class="title">CelLab</h1>
+            <span class="header-tag">Cellular automata</span>
         </div>
         <div class="quick-status">
-            <span id="hud-fps" class="status-pill fps-status-pill fps-good" title="Fluență execuție și randare (FPS)">⚡ 60 FPS</span>
-            <span id="hud-coords" class="status-pill">Centru: (0, 0)</span>
+            <span id="hud-fps" class="status-pill fps-status-pill fps-good" title="Simulation and rendering frame rate (FPS)">60 FPS</span>
+            <span id="hud-coords" class="status-pill">Center: (0, 0)</span>
             <span id="hud-zoom" class="status-pill">Zoom: 100%</span>
-            <span id="cache-stats" class="status-pill highlight">Hashmap: 0 stări (0% hit)</span>
+            <span id="cache-stats" class="status-pill highlight">Hashmap: 0 states (0% hit)</span>
         </div>
     </header>
 
@@ -27,46 +26,52 @@
         <section class="canvas-section">
             <!-- Bara superioară de control simulare (1. Rulare) -->
             <div class="canvas-controls-bar">
+                <div class="simulation-toolbar">
                 <div class="btn-group-primary">
-                    <button id="btn-play" class="btn-ctrl btn-play" title="Pornește simularea continuă (Spațiu)">▶ Play</button>
-                    <button id="btn-pause" class="btn-ctrl btn-pause" title="Oprește simularea (Pauză)" disabled>⏸ Pause</button>
-                    <button id="btn-step" class="btn-ctrl btn-step" title="Un singur pas de simulare (Tasta S)">⏭ Step</button>
-                    <button id="btn-reset" class="btn-ctrl" title="Resetează generația la 0">⏹ Reset</button>
-                    <button id="btn-random" class="btn-ctrl btn-random" title="Populare aleatorie (Tasta R)">🎲 Random</button>
-                    <button id="btn-clear" class="btn-ctrl btn-clear" title="Curăță tot ecranul (Tasta C)">🗑️ Clear</button>
+                    <button id="btn-play" class="btn-ctrl btn-play" title="Start the simulation (Space)">Play</button>
+                    <button id="btn-pause" class="btn-ctrl btn-pause" title="Pause the simulation" disabled>Pause</button>
+                    <button id="btn-step" class="btn-ctrl btn-step" title="Advance one generation (S)">Step</button>
+                    <button id="btn-reset" class="btn-ctrl" title="Restore the starting configuration and reset the generation counter">Reset</button>
+                    <button id="btn-random" class="btn-ctrl btn-random" title="Populate the grid randomly (R)">Random</button>
+                    <button id="btn-clear" class="btn-ctrl btn-clear" title="Clear the grid (C)">Clear</button>
                 </div>
 
                 <div class="speed-box">
-                    <label for="speed-slider">Viteză:</label>
+                    <label for="speed-slider">Speed:</label>
                     <input type="range" id="speed-slider" min="1" max="60" value="10">
                     <span id="speed-value">10 gen/s</span>
                 </div>
 
-                <!-- Genetica Cromatică (Selector Culoare Celule) -->
-                <div class="genetics-color-box" title="Genetica culorii celulei (Moștenire părinți + mutație 1-3%)">
-                    <span class="genetics-label">🧬 Culoare:</span>
-                    <div class="genetics-palette" id="genetics-palette">
-                        <button type="button" class="genetics-chip active" data-color="#00ff88" style="background-color: #00ff88;" title="Verde Neon"></button>
-                        <button type="button" class="genetics-chip" data-color="#00e5ff" style="background-color: #00e5ff;" title="Cian Electric"></button>
-                        <button type="button" class="genetics-chip" data-color="#ff007f" style="background-color: #ff007f;" title="Roz Magenta"></button>
-                        <button type="button" class="genetics-chip" data-color="#ffea00" style="background-color: #ffea00;" title="Galben Solar"></button>
-                        <button type="button" class="genetics-chip" data-color="#a855f7" style="background-color: #a855f7;" title="Violet Vibrant"></button>
-                        <button type="button" class="genetics-chip" data-color="#ff6b00" style="background-color: #ff6b00;" title="Portocaliu"></button>
-                    </div>
-                    <div class="custom-color-wrapper" title="Apasă pentru a alege o culoare personalizată">
-                        <input type="color" id="cell-color-input" value="#00ff88" class="genetics-color-picker">
-                        <span class="custom-color-indicator" id="custom-color-preview" style="background-color: #00ff88;"></span>
-                    </div>
-                    <button type="button" id="btn-recolor-all" class="btn-tiny-recolor" title="Colorează toate celulele vii de pe ecran cu această culoare">🎨 Aplică pe tot</button>
+                </div>
+                <div class="drawing-toolbar">
+                <div class="viewport-tools">
+                    <button id="btn-tool-draw" class="btn-tool active" title="Draw mode (left-click to draw)">Draw</button>
+                    <button id="btn-tool-pan" class="btn-tool" title="Pan mode (left-click and drag)">Pan</button>
+                    <button id="btn-zoom-in" aria-label="Zoom in" class="btn-tool" title="Zoom in">+</button>
+                    <button id="btn-zoom-out" aria-label="Zoom out" class="btn-tool" title="Zoom out">−</button>
+                    <button id="btn-fit-all" class="btn-tool" title="Fit all cells in view (F)">Fit all</button>
+                    <button id="btn-reset-view" class="btn-tool" title="Return to the origin (0, 0)">Center</button>
                 </div>
 
-                <div class="viewport-tools">
-                    <button id="btn-tool-draw" class="btn-tool active" title="Mod Desenare (Click stânga desenează)">✏️ Draw</button>
-                    <button id="btn-tool-pan" class="btn-tool" title="Mod Navigare (Click stânga trage harta)">✋ Pan</button>
-                    <button id="btn-zoom-in" class="btn-tool" title="Mărește (Zoom In)">🔍+</button>
-                    <button id="btn-zoom-out" class="btn-tool" title="Micșorează (Zoom Out)">🔍−</button>
-                    <button id="btn-fit-all" class="btn-tool" title="Încadrează toate celulele pe ecran (Tasta F)">🎯 Fit All</button>
-                    <button id="btn-reset-view" class="btn-tool" title="Resetează vederea la origine (0,0)">⌂ Centru</button>
+                <!-- Genetica Cromatică (Selector Culoare Celule) -->
+                <div class="genetics-color-box" title="Cells inherit their parents’ colors with a 1–3% mutation">
+                    <span class="genetics-label">Color:</span>
+                    <div class="genetics-palette" id="genetics-palette">
+                        <button type="button" class="genetics-chip active" aria-label="Green" data-color="#00ff88" style="background-color: #00ff88;" title="Neon green"></button>
+                        <button type="button" class="genetics-chip" data-color="#00e5ff" style="background-color: #00e5ff;" title="Cyan" aria-label="Cyan"></button>
+                        <button type="button" class="genetics-chip" data-color="#ff007f" style="background-color: #ff007f;" title="Magenta" aria-label="Pink"></button>
+                        <button type="button" class="genetics-chip" data-color="#ffea00" style="background-color: #ffea00;" title="Yellow" aria-label="Yellow"></button>
+                        <button type="button" class="genetics-chip" data-color="#a855f7" style="background-color: #a855f7;" title="Purple" aria-label="Purple"></button>
+                        <button type="button" class="genetics-chip" data-color="#ff6b00" style="background-color: #ff6b00;" title="Orange" aria-label="Orange"></button>
+                    </div>
+                    <div class="custom-color-wrapper" title="Choose a custom color">
+                        <input type="color" id="cell-color-input" value="#00ff88" class="genetics-color-picker" aria-label="Custom color">
+                        <span class="custom-color-indicator" id="custom-color-preview" style="background-color: #00ff88;"></span>
+                    </div>
+                    <button type="button" id="btn-recolor-all" class="btn-tiny-recolor" title="Apply this color to all live cells">Apply to all</button>
+                </div>
+
+
                 </div>
             </div>
 
@@ -78,10 +83,10 @@
                 <div class="canvas-hud">
                     <div class="hud-left">
                         <span id="generation-counter" class="hud-item bold">Gen: 0</span>
-                        <span id="cell-count" class="hud-item bold green">Vii: 0</span>
+                        <span id="cell-count" class="hud-item bold green">Alive: 0</span>
                     </div>
                     <div class="hud-center">
-                        <span class="hud-hint">💡 Rotiță mouse: <strong>Zoom</strong> | Click dreapta sau Shift+drag: <strong>Navigare</strong> | Click stânga: <strong>Desenează</strong></span>
+                        <span class="hud-hint">Click to draw · Scroll to zoom · Shift + drag to pan</span>
                     </div>
                 </div>
             </div>
@@ -91,137 +96,135 @@
         <aside class="sidebar-concise">
             <!-- 1. PRESETĂRI RAPIDE RANDOMIZATE (Cerința 3) -->
             <div class="panel-box">
-                <h3 class="panel-title">⚡ 1. Presetări Rapide Randomizate</h3>
-                <p class="panel-desc">Încarcă instant regula și generează o structură aleatorie centrată:</p>
+                <h3 class="panel-title">Presets</h3>
+                <p class="panel-desc">Choose a starting point for your simulation.</p>
                 <div class="presets-vertical">
                     <button id="btn-preset-gol-random" class="btn-preset-card">
-                        <div class="preset-name">🧬 Conway's Game of Life</div>
-                        <div class="preset-sub">B3/S23 + Supă celulară & planoare (Gliders)</div>
+                        <div class="preset-name">Game of Life</div>
+                        <div class="preset-sub">B3/S23 · patterns and gliders</div>
                     </button>
                     <button id="btn-preset-invert-random" class="btn-preset-card">
-                        <div class="preset-name">🔄 Inversor Orizontal [x, y]</div>
-                        <div class="preset-sub">Vecinii orizontali inversează celula + Linii randomizate</div>
+                        <div class="preset-name">Horizontal inverter</div>
+                        <div class="preset-sub">Toggle a cell between two neighbors</div>
                     </button>
                     <button id="btn-preset-wave-random" class="btn-preset-card">
-                        <div class="preset-name">🌊 Val Propagare Dreapta</div>
-                        <div class="preset-sub">Propagare continuă spre dreapta + Coloane barieră</div>
+                        <div class="preset-name">Rightward wave</div>
+                        <div class="preset-sub">Move cells to the right</div>
                     </button>
                     <button id="btn-preset-seeds-random" class="btn-preset-card">
-                        <div class="preset-name">🌱 Seeds (B2/S)</div>
-                        <div class="preset-sub">Exact 2 vecini = viață + Semințe dispersate</div>
+                        <div class="preset-name">Seeds</div>
+                        <div class="preset-sub">B2/S · birth with exactly two neighbors</div>
                     </button>
                     <button id="btn-preset-chaos-random" class="btn-preset-card">
-                        <div class="preset-name">💥 Haos Multi-Câmp</div>
-                        <div class="preset-sub">Transformări simultane multi-țintă + Constelație densă</div>
+                        <div class="preset-name">Chaos</div>
+                        <div class="preset-sub">Multiple simultaneous transformations</div>
                     </button>
                 </div>
             </div>
 
             <!-- 2. INTRODUCERE REGULI DUPĂ FORMAT PRESTABILIT (Cerința 2) -->
             <div class="panel-box">
-                <h3 class="panel-title">✍️ 2. Introducere Reguli (Format Prestabilit)</h3>
+                <h3 class="panel-title">Add a rule</h3>
                 
-                <div class="format-help-card">
+                <details class="format-help-card">
+                    <summary>Format and examples</summary>
                     <div class="format-syntax">
-                        <code>[x,y] : DACA vecini ATUNCI actiune</code>
+                        <code>[x,y] : IF neighbors THEN action</code>
                     </div>
-                    <div class="format-chips-label">Șabloane rapide 1-click:</div>
+                    <div class="format-chips-label">Rule examples</div>
                     <div class="chips-container">
-                        <button type="button" class="btn-format-chip" data-rule="[x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> 1">
-                            Orizontal ➔ Aprinde [x,y]
+                        <button type="button" class="btn-format-chip" data-rule="[x,y] : IF [x-1,y]=1, [x+1,y]=1 THEN [x,y] -> 1">
+                            Horizontal: turn on [x,y]
                         </button>
-                        <button type="button" class="btn-format-chip" data-rule="[x,y] : DACA [x,y-1]=1, [x,y+1]=1 ATUNCI [x,y] -> invers">
-                            Vertical ➔ Inversează [x,y]
+                        <button type="button" class="btn-format-chip" data-rule="[x,y] : IF [x,y-1]=1, [x,y+1]=1 THEN [x,y] -> invert">
+                            Vertical: toggle [x,y]
                         </button>
-                        <button type="button" class="btn-format-chip" data-rule="[x,y] : DACA [x-1,y]=1 ATUNCI [x,y] -> 1, [x-1,y] -> 0">
-                            Val Dreapta: [x,y] 1, [x-1,y] 0
+                        <button type="button" class="btn-format-chip" data-rule="[x,y] : IF [x-1,y]=1 THEN [x,y] -> 1, [x-1,y] -> 0">
+                            Rightward wave: [x,y] 1, [x-1,y] 0
                         </button>
-                        <button type="button" class="btn-format-chip" data-rule="[x,y]=1 : DACA [x-1,y]=0, [x+1,y]=0 ATUNCI [x,y] -> 0">
-                            Izolat ➔ Stinge [x,y]
+                        <button type="button" class="btn-format-chip" data-rule="[x,y]=1 : IF [x-1,y]=0, [x+1,y]=0 THEN [x,y] -> 0">
+                            Isolated: turn off [x,y]
                         </button>
                     </div>
-                </div>
+                </details>
 
                 <!-- Câmp introducere text în format prestabilit -->
                 <div class="input-row">
                     <input
                         type="text"
                         id="rule-format-input"
-                        placeholder="Ex: [x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> 1"
+                        aria-label="Rule in text format"
+                        placeholder="e.g. [x,y] : IF [x-1,y]=1, [x+1,y]=1 THEN [x,y] -> 1"
                     >
-                    <button id="btn-add-format-rule" class="btn-action">➕ Adaugă</button>
+                    <button id="btn-add-format-rule" class="btn-action"> Add</button>
                 </div>
 
-                <!-- Buton deschidere Constructor de Reguli -->
+                <!-- Buton deschidere Rule builder -->
                 <button type="button" id="btn-toggle-scratch" class="btn-scratch-toggle">
-                    🧩 Constructor de Reguli
+                    Rule builder
                 </button>
 
-                <!-- Panoul Constructor de Reguli -->
+                <!-- Panoul Rule builder -->
                 <div id="scratch-builder-panel" class="scratch-builder-panel hidden">
                     <div class="scratch-panel-header">
-                        <span class="scratch-panel-title">🧩 Constructor de Reguli</span>
-                        <button type="button" id="btn-close-scratch" class="scratch-btn-close" title="Închide constructorul">✕</button>
+                        <span class="scratch-panel-title">Rule builder</span>
+                        <button type="button" id="btn-close-scratch" class="scratch-btn-close" title="Close rule builder" aria-label="Close rule builder">×</button>
                     </div>
 
                     <div class="scratch-blocks-container">
-                        <!-- Bloc 1: Antet Celulă (Portocaliu / Event) -->
+                        <!-- Bloc 1: Antet Celulă (Orange / Event) -->
                         <div class="scratch-block scratch-block-event">
                             <div class="scratch-block-content">
-                                <span class="scratch-icon">🔶</span>
-                                <span class="scratch-label">CÂND se evaluează celula:</span>
+                                <span class="scratch-label">WHEN evaluating a cell:</span>
                                 <select id="scratch-center-state" class="scratch-select">
-                                    <option value="-1" selected>[x, y] = Oricare (*)</option>
-                                    <option value="1">[x, y] = 1 (Vie)</option>
-                                    <option value="0">[x, y] = 0 (Moartă)</option>
+                                    <option value="-1" selected>[x, y] = Any (*)</option>
+                                    <option value="1">[x, y] = 1 (Alive)</option>
+                                    <option value="0">[x, y] = 0 (Dead)</option>
                                 </select>
                             </div>
                         </div>
 
-                        <!-- Bloc 2: Condiții Vecini (Verde Sensing / Operators) -->
+                        <!-- Bloc 2: Condiții Vecini (Green Sensing / Operators) -->
                         <div class="scratch-block scratch-block-c scratch-block-sensing">
                             <div class="scratch-block-header">
-                                <span class="scratch-icon">🟩</span>
-                                <span class="scratch-label">DACĂ sunt îndeplinite condițiile de vecini:</span>
+                                <span class="scratch-label">IF these neighbor conditions are met:</span>
                             </div>
                             <div id="scratch-conditions-list" class="scratch-nested-list">
                                 <!-- Blocurile de condiții se randează dinamic din JS -->
                             </div>
                             <button type="button" id="btn-scratch-add-cond" class="scratch-btn-add">
-                                ➕ Adaugă Condiție Vecin
+                                Add condition
                             </button>
                         </div>
 
                         <!-- Bloc 3: Acțiuni / Efecte (Albastru Motion / Looks) -->
                         <div class="scratch-block scratch-block-c scratch-block-motion">
                             <div class="scratch-block-header">
-                                <span class="scratch-icon">🟦</span>
-                                <span class="scratch-label">ATUNCI execută acțiunile:</span>
+                                <span class="scratch-label">THEN apply these actions:</span>
                             </div>
                             <div id="scratch-actions-list" class="scratch-nested-list">
                                 <!-- Blocurile de acțiuni se randează dinamic din JS -->
                             </div>
                             <button type="button" id="btn-scratch-add-action" class="scratch-btn-add">
-                                ➕ Adaugă Acțiune
+                                Add action
                             </button>
                         </div>
 
                         <!-- Bloc 4: Previzualizare Cod Format Prestabilit (Mov) -->
                         <div class="scratch-block scratch-block-preview">
                             <div class="scratch-preview-header">
-                                <span class="scratch-icon">🟪</span>
-                                <span class="scratch-label">Regulă generată (Format Prestabilit):</span>
+                                <span class="scratch-label">Generated rule:</span>
                             </div>
-                            <code id="scratch-code-preview" class="scratch-code">[x,y] : DACA [x-1,y]=1, [x+1,y]=1 ATUNCI [x,y] -> 1</code>
+                            <code id="scratch-code-preview" class="scratch-code">[x,y] : IF [x-1,y]=1, [x+1,y]=1 THEN [x,y] -> 1</code>
                         </div>
 
                         <!-- Butoane de acțiune Scratch -->
                         <div class="scratch-bottom-actions">
                             <button type="button" id="btn-scratch-apply-rule" class="scratch-btn-apply">
-                                🚀 Salvează & Adaugă în Simulator
+                                Add rule
                             </button>
-                            <button type="button" id="btn-scratch-copy-input" class="scratch-btn-copy" title="Copiază textul în câmpul de mai sus">
-                                📋 Copiază în Text
+                            <button type="button" id="btn-scratch-copy-input" class="scratch-btn-copy" title="Copy the rule to the text field above">
+                                Copy to input
                             </button>
                         </div>
                     </div>
@@ -234,29 +237,28 @@
             <!-- 3. LISTA REGULILOR ACTIVE -->
             <div class="panel-box">
                 <div class="panel-header-row">
-                    <h3 class="panel-title">📋 3. Reguli Active (<span id="rules-count-badge">0</span>)</h3>
-                    <button id="btn-clear-rules" class="btn-tiny-clear" title="Șterge toate regulile">Șterge tot</button>
+                    <h3 class="panel-title">Active rules (<span id="rules-count-badge">0</span>)</h3>
+                    <button id="btn-clear-rules" class="btn-tiny-clear" title="Remove all rules">Clear all</button>
                 </div>
                 <div id="active-rules-list" class="active-rules-container">
-                    <p class="placeholder">Nicio regulă activă.</p>
+                    <p class="placeholder">No active rules.</p>
                 </div>
             </div>
 
             <!-- 4. HASHMAP OPTIMIZARE INFO (Cerința 4) -->
-            <div class="panel-box info-box">
-                <h4 class="info-title">🧠 4. Hashmap Memoization Cache</h4>
+            <details class="panel-box info-box">
+                <summary class="info-title">About the simulation</summary>
                 <p class="info-text">
-                    Fiecare secțiune 3×3 de hartă este salvată într-un <strong>Hashmap</strong> la prima calculare.
-                    Dacă un pattern a mai fost întâlnit (oscilatori, still-life, vid), starea viitoare este regăsită instantaneu în <strong>O(1)</strong>!
+                    The simulation reuses results from previously encountered local patterns to reduce repeated calculations.
                 </p>
-            </div>
+            </details>
         </aside>
     </main>
 
     <!-- Scripturi cu suport dual pentru încărcare fără eroare (file:// și localhost) -->
-    <script src="js/grid.js?v=9"></script>
-    <script src="js/controls.js?v=9"></script>
-    <script src="js/rules_panel.js?v=9"></script>
-    <script src="js/main.js?v=9"></script>
+    <script src="js/grid.js?v=12"></script>
+    <script src="js/controls.js?v=12"></script>
+    <script src="js/rules_panel.js?v=12"></script>
+    <script src="js/main.js?v=12"></script>
 </body>
 </html>
