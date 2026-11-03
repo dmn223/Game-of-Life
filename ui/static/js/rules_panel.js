@@ -5,6 +5,17 @@
  * [x,y] : IF [x+dx,y+dy]=stare, ... THEN [x+dx,y+dy] -> actiune
  */
 
+const NEIGHBOR_OPTIONS = [
+    { val: '-1,0', label: '[x-1, y] (Left)' },
+    { val: '1,0', label: '[x+1, y] (Right)' },
+    { val: '0,-1', label: '[x, y-1] (Up)' },
+    { val: '0,1', label: '[x, y+1] (Down)' },
+    { val: '-1,-1', label: '[x-1, y-1] (Upper left)' },
+    { val: '1,-1', label: '[x+1, y-1] (Upper right)' },
+    { val: '-1,1', label: '[x-1, y+1] (Lower left)' },
+    { val: '1,1', label: '[x+1, y+1] (Lower right)' }
+];
+
 class RulesPanel {
     constructor() {
         this.rules = [];
@@ -59,6 +70,7 @@ class RulesPanel {
         this.rulesCountBadge = document.getElementById('rules-count-badge');
         this.btnClearRules = document.getElementById('btn-clear-rules');
         this.ruleFeedback = document.getElementById('rule-feedback');
+        this.ruleInputFeedback = document.getElementById('rule-input-feedback');
     }
 
     _bindEvents() {
@@ -105,7 +117,11 @@ class RulesPanel {
         }
         if (this.btnScratchAddCond) {
             this.btnScratchAddCond.addEventListener('click', () => {
-                this.scratchBlocks.conditions.push({ dx: 0, dy: -1, state: 1 });
+                const used = new Set(this.scratchBlocks.conditions.map(({ dx, dy }) => `${dx},${dy}`));
+                const available = NEIGHBOR_OPTIONS.find(option => !used.has(option.val));
+                if (!available) return;
+                const [dx, dy] = available.val.split(',').map(Number);
+                this.scratchBlocks.conditions.push({ dx, dy, state: 1 });
                 this._renderScratchConditions();
                 this._updateScratchPreview();
             });
@@ -162,7 +178,7 @@ class RulesPanel {
      * Parsează un șir conform Formatului Prestabilit:
      * [x,y] : IF [x-1,y]=1, [x+1,y]=1 THEN [x,y] -> 1, [x+1,y] -> 0
      */
-    parsePredefinedRule(text) {
+    parsePredefinedRule(text, errors = []) {
         const clean = text.trim();
         if (!clean) return null;
 
@@ -180,6 +196,7 @@ class RulesPanel {
 
         // 2. Extragere condiții vecini [x+dx, y+dy]=stare
         const patternConds = [];
+        const usedNeighbors = new Set();
         const coordRegex = /\[\s*x\s*([+-]\s*\d+)?\s*,\s*y\s*([+-]\s*\d+)?\s*\](?:\s*=\s*([01]))?/gi;
         let m;
 
@@ -191,6 +208,12 @@ class RulesPanel {
             const dy = m[2] ? parseInt(m[2].replace(/\s+/g, ''), 10) : 0;
             const state = m[3] !== undefined ? parseInt(m[3], 10) : 1;
             if (dx === 0 && dy === 0) continue; // centrul a fost deja citit
+            const neighbor = `${dx},${dy}`;
+            if (usedNeighbors.has(neighbor)) {
+                errors.push(`Use ${this._formatCoord(dx, dy)} only once in the IF conditions.`);
+                return null;
+            }
+            usedNeighbors.add(neighbor);
             patternConds.push({ dx, dy, state });
         }
 
@@ -236,19 +259,20 @@ class RulesPanel {
     _addRuleFromFormatInput() {
         const raw = this.ruleFormatInput ? this.ruleFormatInput.value.trim() : '';
         if (!raw) {
-            this._showFeedback('Enter a rule or choose an example above.', 'warning');
+            this._showFeedback('Enter a rule or choose an example above.', 'warning', this.ruleInputFeedback);
             return;
         }
 
-        const parsed = this.parsePredefinedRule(raw);
+        const errors = [];
+        const parsed = this.parsePredefinedRule(raw, errors);
         if (!parsed) {
-            this._showFeedback('Invalid format. Use: [x,y] : IF [x-1,y]=1 THEN [x,y] -> 1', 'error');
+            this._showFeedback(errors[0] || 'Invalid format. Use: [x,y] : IF [x-1,y]=1 THEN [x,y] -> 1', 'error', this.ruleInputFeedback);
             return;
         }
 
         this.rules.push(parsed);
         this._onRulesUpdated();
-        this._showFeedback('Rule added and enabled.', 'success');
+        this._showFeedback('Rule added and enabled.', 'success', this.ruleInputFeedback);
         if (this.ruleFormatInput) this.ruleFormatInput.value = '';
     }
 
@@ -267,27 +291,20 @@ class RulesPanel {
 
     _renderScratchConditions() {
         if (!this.scratchConditionsList) return;
+        const used = new Set(this.scratchBlocks.conditions.map(({ dx, dy }) => `${dx},${dy}`));
+        if (this.btnScratchAddCond) {
+            this.btnScratchAddCond.disabled = NEIGHBOR_OPTIONS.every(option => used.has(option.val));
+        }
         if (this.scratchBlocks.conditions.length === 0) {
             this.scratchConditionsList.innerHTML = '<div class="scratch-empty-note">No neighbor conditions (always applies).</div>';
             return;
         }
 
-        const coordOptions = [
-            { val: '-1,0', label: '[x-1, y] (Left)' },
-            { val: '1,0', label: '[x+1, y] (Right)' },
-            { val: '0,-1', label: '[x, y-1] (Up)' },
-            { val: '0,1', label: '[x, y+1] (Down)' },
-            { val: '-1,-1', label: '[x-1, y-1] (Upper left)' },
-            { val: '1,-1', label: '[x+1, y-1] (Upper right)' },
-            { val: '-1,1', label: '[x-1, y+1] (Lower left)' },
-            { val: '1,1', label: '[x+1, y+1] (Lower right)' }
-        ];
-
         let html = '';
         this.scratchBlocks.conditions.forEach((cond, idx) => {
             const currentVal = `${cond.dx},${cond.dy}`;
-            const optsHtml = coordOptions.map(opt =>
-                `<option value="${opt.val}" ${opt.val === currentVal ? 'selected' : ''}>${opt.label}</option>`
+            const optsHtml = NEIGHBOR_OPTIONS.map(opt =>
+                `<option value="${opt.val}" ${opt.val === currentVal ? 'selected' : used.has(opt.val) ? 'disabled' : ''}>${opt.label}</option>`
             ).join('');
 
             html += `
@@ -315,6 +332,8 @@ class RulesPanel {
                 const [dx, dy] = e.target.value.split(',').map(Number);
                 this.scratchBlocks.conditions[i].dx = dx;
                 this.scratchBlocks.conditions[i].dy = dy;
+                this._renderScratchConditions();
+                this.scratchConditionsList.querySelector(`.scratch-cond-coord[data-idx="${i}"]`)?.focus();
                 this._updateScratchPreview();
             });
         });
@@ -763,14 +782,13 @@ class RulesPanel {
         this._showFeedback('Chaos preset loaded.', 'success');
     }
 
-    _showFeedback(msg, type = 'success') {
-        if (!this.ruleFeedback) return;
-        this.ruleFeedback.textContent = msg;
-        this.ruleFeedback.className = `feedback-msg ${type}`;
-        this.ruleFeedback.classList.remove('hidden');
+    _showFeedback(msg, type = 'success', target = this.ruleFeedback) {
+        if (!target) return;
+        target.textContent = msg;
+        target.className = `feedback-msg ${type}`;
 
         setTimeout(() => {
-            if (this.ruleFeedback) this.ruleFeedback.classList.add('hidden');
+            target.classList.add('hidden');
         }, 4000);
     }
 }
