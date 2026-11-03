@@ -768,7 +768,7 @@ Probleme la selectarea culorii celulelor: nu se poate schimba culoarea și selec
 
 ---
 
-### [2026-11-03 / Pasul 24] - Autor: Codex
+### [2026-11-03 / Pasul 24] - Autor: Mara
 
 **Prompt Utilizator:**
 
