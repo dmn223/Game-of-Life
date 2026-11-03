@@ -655,3 +655,115 @@ Ajustare a denumirii panoului și butonului: eliminarea textului „stil scratch
 - `AI_INTERACTIONS.md` (actualizat cu Pasul 20)
 
 ---
+
+
+### [2026-10-22 / Pasul 21] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Adăugarea unui indicator FPS lângă butonul de centru/zoom pentru a vizualiza fluența execuției și a randării simulatorului celular.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Adăugare Indicator FPS în Bară și HUD (`ui/static/index.html`):**
+   - Introdus elementul `#fps-badge` în bara de unelte de navigare (`.viewport-tools`), amplasat imediat lângă butoanele de Zoom (`🔍+`, `🔍−`), Încadrare (`🎯 Fit All`) și Centrare (`⌂ Centru`).
+   - Adăugat elementul `#hud-fps` în bara superioară de status (`.quick-status`), alături de coordonatele de centru și nivelul de zoom.
+
+2. **Implementare Monitor FPS în Timp Real (`ui/static/js/controls.js`):**
+   - Creat metoda `_initFpsMeter()` care măsoară cadrele pe secundă folosind bucla `requestAnimationFrame` și `performance.now()`.
+   - Implementat calcul cu eșantionare la 500ms pentru a oferi valori precise, stabile și fără fluctuații haotice.
+   - Adăugat suport de feedback cromatic pe baza ratei de cadre:
+     - 🟢 **Verde (`fps-good`, $\ge 50$ FPS):** Execuție fluidă, performanță optimă.
+     - 🟡 **Galben / Portocaliu (`fps-warn`, $30 - 49$ FPS):** Fluență medie.
+     - 🔴 **Roșu (`fps-bad`, $< 30$ FPS):** Încărcare ridicată sau căderi de cadre.
+   - Adăugat tooltip informativ la hover cu detalii privind calitatea execuției.
+
+3. **Stilizare Vizuală (`ui/static/css/style.css`):**
+   - Stilizat insigna `.fps-badge` cu font mono, colțuri rotunjite, margini luminoase și tranziții colorimetrice fluide.
+   - Aliniat flexbox pentru `.viewport-tools`.
+   - Actualizat versiunea resurselor statice la `?v=7` în `ui/static/index.html` pentru cache-busting imediat.
+
+4. **Validare & Teste:**
+   - Verificată sintaxa JavaScript cu `node -c` pe fișierele frontend: 0 erori.
+   - Verificată suita de teste cu `pytest`: 18 teste trecute cu succes.
+
+**Fișiere modificate:**
+- `ui/static/index.html` (adăugare `#fps-badge` lângă butoanele de zoom/centru și `#hud-fps`, bump cache v=7)
+- `ui/static/js/controls.js` (implementare `_initFpsMeter()` cu `requestAnimationFrame` și clase cromatice)
+- `ui/static/css/style.css` (stilizare `.fps-badge`, `.fps-status-pill` și stări `fps-good`, `fps-warn`, `fps-bad`)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 21)
+
+---
+
+
+### [2026-10-22 / Pasul 22] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Păstrarea indicatorului FPS exclusiv în colțul din dreapta sus și mutarea acestuia în stânga câmpului de coordonate de centru. Implementarea tranziției naturale a culorilor celulelor bazată pe moștenire genetică (utilizatorul poate plasa celule de culori diferite, iar celulele noi născute moștenesc media culorilor celulelor părinte existente, cu o mutație aleatorie între 1% și 3%).
+
+**Răspuns / Acțiuni AI:**
+
+1. **Reorganizare Indicator FPS (`ui/static/index.html`, `controls.js`, `style.css`):**
+   - Eliminat indicatorul duplicat `#fps-badge` din bara de unelte inferioară (`.viewport-tools`).
+   - Repoziționat indicatorul `#hud-fps` în bara superioară `.quick-status` ca prim element, situat imediat în stânga câmpului `Centru: (x, y)`.
+
+2. **Sistem de Moștenire Genetică Cromatică & Mutație 1-3% (`ui/static/js/grid.js`, `controls.js`):**
+   - **Selector Culoare Desenare:** Introdus panoul `.genetics-color-box` cu o paletă de 6 culori vibrante (Verde Neon, Cian Electric, Roz Magenta, Galben Solar, Violet Vibrant, Portocaliu) și un selector colorimetric complet (`<input type="color">`).
+   - **Stocare Genetică în Hashmap:** Gridul stochează fiecare celulă vie ca obiect cromatic RGB `{r, g, b}` în loc de un simplu scalar `1`.
+   - **Calcul Moștenire Părinți:** În `executeStep()`, când o celulă nouă este adusă la viață (`cellNextState === 1` dintr-o stare anterioară moartă), aceasta colectează toți părinții vii din vecinătatea $3\times 3$ și calculează media ponderată a canalelor $(R_{avg}, G_{avg}, B_{avg})$.
+   - **Mutație Genetică Aleatorie (1% - 3%):** Fiecare canal RGB suferă o variație randomizată de $\pm(1\% \dots 3\%)$ din spectrul de culoare ($2.55 \dots 7.65$ unități RGB), creând o evoluție biologică organică.
+   - **Păstrare Linie Genetică:** Celulele supraviețuitoare își mențin culoarea intactă, permițând coloniilor distincte să interacționeze și să fuzioneze cromatic la granițe.
+   - **Presetări Multicolore:** Actualizat `randomize()` și presetările rapide (Conway, Invert, Wave, Seeds) pentru a popula gridul cu colonii genetice contrastante.
+
+3. **Stilizare & Cache-Busting (`ui/static/css/style.css`, `index.html`):**
+   - Stilizat `.genetics-color-box`, bulinele de selecție cromatică cu efect de hover/activ și color picker-ul integrat.
+   - Actualizat indexul resurselor la `?v=8` în `ui/static/index.html`.
+
+4. **Validare:**
+   - Verificare sintactică frontend cu `node -c`: 0 erori.
+   - Verificare automată teste cu `pytest`: 18 teste trecute cu succes.
+
+**Fișiere modificate:**
+- `ui/static/index.html` (mutare FPS în stânga centrului, eliminare badge unelte, adăugare genetic color box, bump v=8)
+- `ui/static/css/style.css` (stilizare componentă genetică cromatică)
+- `ui/static/js/grid.js` (stocare culori RGB per celulă, conversie culori, desenare cu genetica celulei, colonii randomizate)
+- `ui/static/js/controls.js` (calcul medie cromatică părinți + mutație 1-3%, legare selector culoare, FPS în HUD)
+- `ui/static/js/rules_panel.js` (actualizare presetări rapide cu glidere și colonii multicolore)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 22)
+
+---
+
+### [2026-10-22 / Pasul 23] - Autor: Damian
+
+**Prompt Utilizator:**
+
+Probleme la selectarea culorii celulelor: nu se poate schimba culoarea și selecția personalizată din color picker nu se aplică.
+
+**Răspuns / Acțiuni AI:**
+
+1. **Reparare Selecție Culoare & Color Picker (`ui/static/index.html`, `style.css`, `controls.js`):**
+   - **Compatibilitate Evenimente Color Picker:** Adăugat ascultător pentru ambele evenimente, `'input'` și `'change'`, pe selectorul nativ `<input type="color">`. În browser-ele moderne pe Windows/Chromium/Firefox, confirmarea din fereastra modală de culoare transmite uneori doar evenimentul `change`.
+   - **Indicator Vizual Culoare Personalizată:** Înlocuit stilul invizibil al color picker-ului cu o structură hibridă: un indicator de previzualizare `#custom-color-preview` peste care se suprapune transparent inputul nativ. Indicatorul își actualizează fundalul instantaneu la orice selecție (chip sau color picker).
+   - **Stiluri Directe pe Chip-urile Genetice:** Înlocuite variabilele CSS `--chip-color` cu stiluri inline directe (`style="background-color: #00ff88;"` etc.) pentru a preveni comportamentul neuniform la citirea proprietăților CSS în canvas.
+   - **Funcție Unificată `updateActiveColor(hexOrRgb)`:** Sincronizează într-un singur punct `grid.setCurrentColor()`, valoarea din inputul colorimetric, stilul previzualizării `#custom-color-preview` și conturul luminos `.active` al chip-urilor predefinite.
+
+2. **Comportament Desenare și Recolorare pe Canvas (`ui/static/js/grid.js`):**
+   - **Recolorare la Click:** Dacă utilizatorul dă click pe o celulă vie existentă care are o culoare diferită de culoarea curent selectată, celula este recolorată în loc să fie ștearsă. Dacă celula are deja aceeași culoare, acționează ca toggle (se șterge).
+   - **Recolorare la Drag:** Când se ține apăsat mouse-ul și se glisează peste celule existente de culori diferite, acestea sunt recolorate la noua culoare activă (pictură intuitivă peste colonii).
+   - **Buton Recolorare Totală:** Adăugat butonul `🎨 Aplică pe tot` (`#btn-recolor-all`) care recolorează instant toate celulele vii de pe ecran cu culoarea activă selectată.
+   - **Parser Cromatic Extins:** Suport adăugat în `parseColor` pentru formate `#RRGGBB`, `#RGB`, `rgb(...)`, `rgba(...)` și obiecte `{r, g, b}`.
+
+3. **Cache-Busting & Teste:**
+   - Resursele din `ui/static/index.html` au fost actualizate la versiunea `?v=9`.
+   - Verificare automată sintaxă JS cu `node -c`: validare 100%.
+   - Rulare suită automată `pytest`: 18 teste trecute cu succes.
+
+**Fișiere modificate:**
+- `ui/static/index.html` (DOM preview culoare personalizată, buton recolorare totală, stiluri inline chip-uri, bump v=9)
+- `ui/static/css/style.css` (stilizare selector personalizat, preview cromatic, buton recolorare)
+- `ui/static/js/grid.js` (recolorare celule la click/drag, rgbToHex, recolorAll, parser extins)
+- `ui/static/js/controls.js` (updateActiveColor unificat, listener dual input/change, handler recolorAll)
+- `AI_INTERACTIONS.md` (actualizat cu Pasul 23)
+
+---

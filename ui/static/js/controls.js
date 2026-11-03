@@ -27,6 +27,7 @@ class SimulationControls {
 
         this._bindElements();
         this._bindEvents();
+        this._initFpsMeter();
         this._updateHUD();
     }
 
@@ -49,12 +50,19 @@ class SimulationControls {
         this.btnResetView = document.getElementById('btn-reset-view');
         this.btnFitAll = document.getElementById('btn-fit-all');
 
+        // Genetica Cromatică
+        this.cellColorInput = document.getElementById('cell-color-input');
+        this.customColorPreview = document.getElementById('custom-color-preview');
+        this.geneticsChips = document.querySelectorAll('.genetics-chip');
+        this.btnRecolorAll = document.getElementById('btn-recolor-all');
+
         // HUD & Indicatori
         this.generationCounter = document.getElementById('generation-counter');
         this.cellCount = document.getElementById('cell-count');
         this.cacheStats = document.getElementById('cache-stats');
         this.hudCoords = document.getElementById('hud-coords');
         this.hudZoom = document.getElementById('hud-zoom');
+        this.hudFps = document.getElementById('hud-fps');
     }
 
     _bindEvents() {
@@ -64,6 +72,59 @@ class SimulationControls {
         if (this.btnReset) this.btnReset.addEventListener('click', () => this.reset());
         if (this.btnRandom) this.btnRandom.addEventListener('click', () => this.randomize());
         if (this.btnClear) this.btnClear.addEventListener('click', () => this.clear());
+
+        // Metodă unificată pentru selectarea și aplicarea culorii active
+        const updateActiveColor = (hexOrRgb) => {
+            const parsed = this.grid.parseColor(hexOrRgb);
+            this.grid.setCurrentColor(parsed);
+            const hex = this.grid.rgbToHex(parsed);
+
+            if (this.cellColorInput) this.cellColorInput.value = hex;
+            if (this.customColorPreview) this.customColorPreview.style.backgroundColor = hex;
+
+            if (this.geneticsChips) {
+                this.geneticsChips.forEach(c => {
+                    const chipHex = c.dataset.color ? c.dataset.color.toLowerCase() : '';
+                    if (chipHex === hex.toLowerCase()) {
+                        c.classList.add('active');
+                    } else {
+                        c.classList.remove('active');
+                    }
+                });
+            }
+        };
+
+        // Selector Culoare Genetică Celule (Chip-uri)
+        if (this.geneticsChips) {
+            this.geneticsChips.forEach(chip => {
+                chip.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const color = chip.dataset.color;
+                    updateActiveColor(color);
+                });
+            });
+        }
+
+        // Color picker nativ (atât pe evenimentul 'input' cât și pe 'change')
+        if (this.cellColorInput) {
+            const handleColorChange = (e) => {
+                const color = e.target.value;
+                updateActiveColor(color);
+            };
+            this.cellColorInput.addEventListener('input', handleColorChange);
+            this.cellColorInput.addEventListener('change', handleColorChange);
+        }
+
+        // Buton Recolorare Toate Celulele Vii de pe ecran
+        if (this.btnRecolorAll) {
+            this.btnRecolorAll.addEventListener('click', () => {
+                this.grid.recolorAll(this.grid.currentColor);
+                if (window.rulesPanel) {
+                    window.rulesPanel._showFeedback('🎨 Toate celulele vii au fost colorate în noua nuanță!', 'success');
+                }
+            });
+        }
 
         if (this.speedSlider) {
             this.speedSlider.addEventListener('input', (e) => {
@@ -189,6 +250,52 @@ class SimulationControls {
         // Colectăm acțiuni simultane multi-țintă dacă există reguli relative cu ținte multiple
         const multiActions = new Map();
 
+        // Mutație genetică aleatorie între 1% și 3% pe fiecare canal RGB
+        const mutateChannel = (val) => {
+            const pct = 0.01 + Math.random() * 0.02; // [0.01, 0.03]
+            const sign = Math.random() < 0.5 ? -1 : 1;
+            const delta = sign * pct * 255;
+            return Math.max(0, Math.min(255, Math.round(val + delta)));
+        };
+
+        // Calculează culoarea unei celule noi: medie a celulelor vecine vii + mutație
+        const computeChildColor = (cx, cy) => {
+            let totalR = 0;
+            let totalG = 0;
+            let totalB = 0;
+            let count = 0;
+
+            for (const [dx, dy] of [
+                [-1, -1], [0, -1], [1, -1],
+                [-1,  0],          [1,  0],
+                [-1,  1], [0,  1], [1,  1]
+            ]) {
+                const parentColor = activeCells.get(`${cx + dx},${cy + dy}`);
+                if (parentColor) {
+                    totalR += (parentColor.r !== undefined ? parentColor.r : 0);
+                    totalG += (parentColor.g !== undefined ? parentColor.g : 255);
+                    totalB += (parentColor.b !== undefined ? parentColor.b : 136);
+                    count++;
+                }
+            }
+
+            if (count > 0) {
+                return {
+                    r: mutateChannel(totalR / count),
+                    g: mutateChannel(totalG / count),
+                    b: mutateChannel(totalB / count)
+                };
+            }
+
+            // Fără părinți direcți (naștere spontană): folosește culoarea curentă + mutație
+            const curr = this.grid.currentColor || { r: 0, g: 255, b: 136 };
+            return {
+                r: mutateChannel(curr.r),
+                g: mutateChannel(curr.g),
+                b: mutateChannel(curr.b)
+            };
+        };
+
         // 2. Pentru fiecare celulă candidată: verificăm în Hashmap Cache
         for (const key of candidates) {
             const sep = key.indexOf(',');
@@ -211,7 +318,12 @@ class SimulationControls {
                 this.cacheHits++;
                 const cached = this.hashmapCache.get(hash);
                 if (cached.nextState === 1) {
-                    nextCells.set(key, 1);
+                    // Dacă celula era deja vie, își păstrează culoarea genetică proprie
+                    // Dacă e o celulă NOUĂ născută, calculăm media culorilor părinților + mutație 1-3%
+                    const cellColor = activeCells.has(key)
+                        ? (activeCells.get(key) || { r: 0, g: 255, b: 136 })
+                        : computeChildColor(x, y);
+                    nextCells.set(key, cellColor);
                 }
                 // Dacă regula din cache avea acțiuni multi-țintă
                 if (cached.multiEffects && cached.multiEffects.length > 0) {
@@ -303,7 +415,10 @@ class SimulationControls {
             });
 
             if (cellNextState === 1) {
-                nextCells.set(key, 1);
+                const cellColor = activeCells.has(key)
+                    ? (activeCells.get(key) || { r: 0, g: 255, b: 136 })
+                    : computeChildColor(x, y);
+                nextCells.set(key, cellColor);
             }
         }
 
@@ -316,7 +431,15 @@ class SimulationControls {
                 else if (act === 'invert') val = 1 - val;
             }
             if (val === 1) {
-                nextCells.set(tKey, 1);
+                if (!nextCells.has(tKey)) {
+                    const sep = tKey.indexOf(',');
+                    const tx = parseInt(tKey.slice(0, sep), 10);
+                    const ty = parseInt(tKey.slice(sep + 1), 10);
+                    const cellColor = activeCells.has(tKey)
+                        ? (activeCells.get(tKey) || { r: 0, g: 255, b: 136 })
+                        : computeChildColor(tx, ty);
+                    nextCells.set(tKey, cellColor);
+                }
             } else {
                 nextCells.delete(tKey);
             }
@@ -381,6 +504,44 @@ class SimulationControls {
         this.grid.randomize(size, density);
         this.generation = 0;
         this._updateHUD();
+    }
+
+    /**
+     * Inițializează contorul de FPS în timp real bazat pe requestAnimationFrame.
+     * Măsoară fluența randării pe ecran și starea de încărcare a simulatorului.
+     */
+    _initFpsMeter() {
+        let frameCount = 0;
+        let lastTime = performance.now();
+        this.currentFps = 60;
+
+        const updateFpsUi = (fps) => {
+            this.currentFps = fps;
+            const text = `⚡ ${fps} FPS`;
+
+            if (this.hudFps) {
+                this.hudFps.textContent = text;
+                this.hudFps.classList.remove('fps-good', 'fps-warn', 'fps-bad');
+                if (fps >= 50) this.hudFps.classList.add('fps-good');
+                else if (fps >= 30) this.hudFps.classList.add('fps-warn');
+                else this.hudFps.classList.add('fps-bad');
+                this.hudFps.title = `Fluență: ${fps} FPS (${fps >= 50 ? 'Excelent' : fps >= 30 ? 'Bun' : 'Scăzut'})`;
+            }
+        };
+
+        const fpsLoop = (timestamp) => {
+            frameCount++;
+            const elapsed = timestamp - lastTime;
+            if (elapsed >= 500) {
+                const calculatedFps = Math.round((frameCount * 1000) / elapsed);
+                updateFpsUi(calculatedFps);
+                frameCount = 0;
+                lastTime = timestamp;
+            }
+            requestAnimationFrame(fpsLoop);
+        };
+
+        requestAnimationFrame(fpsLoop);
     }
 
     _updateHUD() {
