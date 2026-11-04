@@ -10,16 +10,6 @@
 - **Analiză avansată** — detectare stări stabile, cicluri, pattern matching
 - **Interfață web modernă** — grid Canvas interactiv, similar cu playgameoflife.com
 
-## Structura Proiectului
-
-| Pachet | Descriere | Responsabil |
-|--------|-----------|-------------|
-| `models/` | Schema Pydantic — contractul comun | Membru 1 |
-| `nlp_parser/` | Parsare limbaj natural → spec formal | Membru 1 |
-| `simulation_engine/` | Motor de simulare (generații, vecinătăți) | Membru 2 |
-| `analysis/` | Cele 5 întrebări de analiză | Membru 2 |
-| `ui/` | Interfață web FastAPI + Canvas | Membru 3 |
-
 ## Instalare
 
 ```bash
