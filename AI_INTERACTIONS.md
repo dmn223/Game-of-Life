@@ -4,7 +4,7 @@
 
 ---
 
-### [2026-10-10 / Pasul 1] - Autor: Membru 1
+### [2026-10-10 / Pasul 1] - Autor: Damian
 
 **Prompt Utilizator:**
 
@@ -37,7 +37,7 @@ Context: echipă de 3 persoane, depozit Git clonat local, abordare iterativă (d
 
 ---
 
-### [2026-10-10 / Pasul 2] - Autor: Membru 1 / Echipa CelLab
+### [2026-10-10 / Pasul 2] - Autor: Damian
 
 **Prompt Utilizator:**
 
@@ -66,7 +66,7 @@ Aprobarea planului și continuarea implementării (scaffolding complet al proiec
 
 ---
 
-### [2026-10-10 / Pasul 3] - Autor: Membru 1 / Echipa CelLab
+### [2026-10-10 / Pasul 3] - Autor: Damian
 
 **Prompt Utilizator:**
 
@@ -86,7 +86,7 @@ Cerere de efectuare commit pentru toate fișierele create și push pe GitHub pe 
 
 ---
 
-### [2026-10-13 / Pasul 4] - Autor: Membru 1 / Echipa CelLab
+### [2026-10-13 / Pasul 4] - Autor: Damian
 
 **Prompt Utilizator:**
 
@@ -106,7 +106,7 @@ Cerere de efectuare commit pentru toate fișierele create și push pe GitHub pe 
 
 ---
 
-### [2026-10-13 / Pasul 5] - Autor: Membru 1 / Echipa CelLab
+### [2026-10-13 / Pasul 5] - Autor: Damian
 
 **Prompt Utilizator:**
 
@@ -126,7 +126,7 @@ Cerere de efectuare commit pentru toate fișierele create și push pe GitHub pe 
 
 ---
 
-### [2026-10-13 / Pasul 6] - Autor: Membru 1 / Echipa CelLab
+### [2026-10-13 / Pasul 6] - Autor: Damian
 
 **Prompt Utilizator:**
 
@@ -147,7 +147,7 @@ Cerere de efectuare commit pentru toate fișierele create și push pe GitHub pe 
 
 ---
 
-### [2026-10-13 / Pasul 7] - Autor: Membru 1 / Echipa CelLab
+### [2026-10-13 / Pasul 7] - Autor: Damian
 
 **Prompt Utilizator:**
 
@@ -165,7 +165,7 @@ Cerere de efectuare commit pentru toate fișierele create și push pe GitHub pe 
 
 ---
 
-### [2026-10-13 / Pasul 8] - Autor: Membru 1 / Echipa CelLab
+### [2026-10-13 / Pasul 8] - Autor: Damian
 
 **Prompt Utilizator:**
 
@@ -214,7 +214,7 @@ Cerere de efectuare commit pentru toate fișierele create și push pe GitHub pe 
 
 ---
 
-### [2026-10-13 / Pasul 9] - Autor: Echipa CelLab
+### [2026-10-13 / Pasul 9] - Autor: Mara
 
 **Prompt Utilizator:**
 
